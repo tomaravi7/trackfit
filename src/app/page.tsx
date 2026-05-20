@@ -1733,20 +1733,28 @@ export default function TrackFitApp() {
             {activeTab === 'insights' && (
               <div className="space-y-3 sm:space-y-4 w-full max-w-full overflow-hidden">
                 {/* Sub-tabs */}
-                <div className="w-full overflow-x-auto scrollbar-none">
-                  <div className="flex bg-zinc-950 border border-zinc-800/60 rounded-xl p-0.5 gap-0.5 min-w-fit">
-                    {(['calories', 'weight', 'water', 'workouts', 'calendar', 'body'] as InsightSubTab[]).map(t => (
-                      <button key={t} onClick={() => setInsightSubTab(t)} className={`flex-shrink-0 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs lg:text-sm font-medium transition-all cursor-pointer capitalize whitespace-nowrap ${insightSubTab === t ? 'bg-zinc-800 text-zinc-100 shadow-sm' : 'text-zinc-400 hover:text-zinc-200'}`}>
-                        {t === 'calories' && <Flame className="h-3.5 w-3.5" />}
-                        {t === 'weight' && <Scale className="h-3.5 w-3.5" />}
-                        {t === 'water' && <Droplets className="h-3.5 w-3.5" />}
-                        {t === 'workouts' && <Dumbbell className="h-3.5 w-3.5" />}
-                        {t === 'calendar' && <CalendarIcon className="h-3.5 w-3.5" />}
-                        {t === 'body' && <Activity className="h-3.5 w-3.5" />}
-                        {t === 'calendar' ? 'Consistency' : t === 'body' ? 'Body' : t}
-                      </button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                  {([
+                    { id: 'calories' as InsightSubTab, icon: Flame, label: 'Calories' },
+                    { id: 'weight' as InsightSubTab, icon: Scale, label: 'Weight' },
+                    { id: 'water' as InsightSubTab, icon: Droplets, label: 'Water' },
+                    { id: 'workouts' as InsightSubTab, icon: Dumbbell, label: 'Workouts' },
+                    { id: 'calendar' as InsightSubTab, icon: CalendarIcon, label: 'Consistency' },
+                    { id: 'body' as InsightSubTab, icon: Activity, label: 'Body' },
+                  ]).map(({ id, icon: Icon, label }) => (
+                    <button
+                      key={id}
+                      onClick={() => setInsightSubTab(id)}
+                      className={`flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl text-xs font-medium transition-all cursor-pointer btn-press smooth-transition ${
+                        insightSubTab === id
+                          ? 'bg-zinc-800 text-zinc-100 shadow-sm ring-1 ring-zinc-700/50'
+                          : 'bg-zinc-950/50 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50 border border-zinc-800/40'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-[10px] lg:text-xs">{label}</span>
+                    </button>
+                  ))}
                 </div>
 
                 {/* Time frame selector - shown for all sub-tabs */}
