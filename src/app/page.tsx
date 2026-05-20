@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BodyHeatmap } from '@/components/body-heatmap';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 interface FoodLog {
@@ -45,7 +46,7 @@ interface WeightLog { id?: number; date: string; weight: number; bodyFat?: numbe
 interface WaterLog { id?: number; date: string; amount: number; }
 interface WorkoutSession { id?: number; date: string; duration: number; energy: number; notes: string; }
 type TabId = 'dashboard' | 'food' | 'workout' | 'insights' | 'settings';
-type InsightSubTab = 'calories' | 'weight' | 'water' | 'workouts' | 'calendar';
+type InsightSubTab = 'calories' | 'weight' | 'water' | 'workouts' | 'calendar' | 'body';
 type TimeFrame = '7d' | '14d' | '30d' | 'all';
 
 function toDateStr(d: Date) {
@@ -1408,6 +1409,32 @@ export default function TrackFitApp() {
                   </button>
                   {showRecommendations && (
                     <CardContent className="p-4 space-y-3">
+                      {loadingRecommendations ? (
+                        <div className="space-y-3 animate-pulse">
+                          <div className="flex items-center gap-2">
+                            <div className="h-7 w-24 bg-[#181822] rounded-lg" />
+                          </div>
+                          {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="p-2.5 bg-[#151520]/30 border border-[#212130]/60 rounded-lg animate-shimmer" style={{ animationDelay: `${i * 0.1}s` }}>
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 space-y-2">
+                                  <div className="h-4 w-32 bg-[#1f1f2e] rounded" />
+                                  <div className="h-3 w-48 bg-[#1f1f2e] rounded" />
+                                </div>
+                                <div className="text-right space-y-2">
+                                  <div className="h-4 w-16 bg-[#1f1f2e] rounded ml-auto" />
+                                  <div className="h-3 w-24 bg-[#1f1f2e] rounded ml-auto" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="text-center text-zinc-500 text-xs flex items-center justify-center gap-2 pt-2">
+                            <div className="h-3.5 w-3.5 animate-spin rounded-full border border-emerald-400 border-t-transparent" />
+                            Finding foods for you...
+                          </div>
+                        </div>
+                      ) : (
+                        <>
                       <div className="flex items-center gap-2">
                         <span className="text-xs lg:text-sm text-zinc-500">Meal:</span>
                         <Select value={selectedRecommendationMealType} onValueChange={(v: any) => setSelectedRecommendationMealType(v)}>
@@ -1429,23 +1456,23 @@ export default function TrackFitApp() {
                           ))}
                         </div>
                       )}
-                      {foodRecommendations.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-2">
-                          {foodRecommendations.map((rec, i) => (
-                            <button
-                              key={i}
-                              onClick={() => {
-                                setFoodFormName(rec.name);
-                                setFoodFormCalories(rec.calories);
-                                setFoodFormProtein(rec.protein);
-                                setFoodFormCarbs(rec.carbs);
-                                setFoodFormFiber(rec.fiber);
-                                setFoodFormFat(rec.fat);
-                                setFoodFormMealType(rec.mealType);
-                                setFoodDialogOpen(true);
-                              }}
-                              className="text-left p-2.5 bg-[#151520]/30 border border-[#212130]/60 rounded-lg hover:bg-[#1a1a28] transition-colors"
-                            >
+                       {foodRecommendations.length > 0 ? (
+                         <div className="grid grid-cols-1 gap-2">
+                           {foodRecommendations.map((rec, i) => (
+                             <button
+                               key={i}
+                               onClick={() => {
+                                 setFoodFormName(rec.name);
+                                 setFoodFormCalories(rec.calories);
+                                 setFoodFormProtein(rec.protein);
+                                 setFoodFormCarbs(rec.carbs);
+                                 setFoodFormFiber(rec.fiber);
+                                 setFoodFormFat(rec.fat);
+                                 setFoodFormMealType(rec.mealType);
+                                 setFoodDialogOpen(true);
+                               }}
+                               className={`text-left p-2.5 bg-[#151520]/30 border border-[#212130]/60 rounded-lg hover:bg-[#1a1a28] card-hover btn-press animate-fade-in-up stagger-${Math.min(i + 1, 8)}`}
+                             >
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
@@ -1464,15 +1491,10 @@ export default function TrackFitApp() {
                         </div>
                       ) : (
                         <Button
-                          className="w-full bg-emerald-600/20 border border-emerald-600/40 text-emerald-300 hover:bg-emerald-600/30 h-9 rounded-xl font-semibold text-xs"
+                          className="w-full bg-emerald-600/20 border border-emerald-600/40 text-emerald-300 hover:bg-emerald-600/30 h-9 rounded-xl font-semibold text-xs btn-press"
                           onClick={fetchFoodRecommendations}
-                          disabled={loadingRecommendations}
                         >
-                          {loadingRecommendations ? (
-                            <><div className="h-3.5 w-3.5 animate-spin rounded-full border border-emerald-400 border-t-transparent mr-2" />Finding foods...</>
-                          ) : (
-                            <><Sparkles className="h-3.5 w-3.5 mr-1.5" />Get Recommendations</>
-                          )}
+                          <><Sparkles className="h-3.5 w-3.5 mr-1.5" />Get Recommendations</>
                         </Button>
                       )}
                       {foodRecommendations.length > 0 && (
@@ -1482,6 +1504,8 @@ export default function TrackFitApp() {
                         >
                           Clear recommendations
                         </button>
+                      )}
+                        </>
                       )}
                     </CardContent>
                   )}
@@ -1711,14 +1735,15 @@ export default function TrackFitApp() {
                 {/* Sub-tabs */}
                 <div className="w-full overflow-x-auto scrollbar-none">
                   <div className="flex bg-zinc-950 border border-zinc-800/60 rounded-xl p-0.5 gap-0.5 min-w-fit">
-                    {(['calories', 'weight', 'water', 'workouts', 'calendar'] as InsightSubTab[]).map(t => (
+                    {(['calories', 'weight', 'water', 'workouts', 'calendar', 'body'] as InsightSubTab[]).map(t => (
                       <button key={t} onClick={() => setInsightSubTab(t)} className={`flex-shrink-0 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs lg:text-sm font-medium transition-all cursor-pointer capitalize whitespace-nowrap ${insightSubTab === t ? 'bg-zinc-800 text-zinc-100 shadow-sm' : 'text-zinc-400 hover:text-zinc-200'}`}>
                         {t === 'calories' && <Flame className="h-3.5 w-3.5" />}
                         {t === 'weight' && <Scale className="h-3.5 w-3.5" />}
                         {t === 'water' && <Droplets className="h-3.5 w-3.5" />}
                         {t === 'workouts' && <Dumbbell className="h-3.5 w-3.5" />}
                         {t === 'calendar' && <CalendarIcon className="h-3.5 w-3.5" />}
-                        {t === 'calendar' ? 'Consistency' : t}
+                        {t === 'body' && <Activity className="h-3.5 w-3.5" />}
+                        {t === 'calendar' ? 'Consistency' : t === 'body' ? 'Body' : t}
                       </button>
                     ))}
                   </div>
@@ -2186,6 +2211,21 @@ export default function TrackFitApp() {
                     </div>
                   );
                 })()}
+
+                {/* ── Body Heatmap ── */}
+                {insightSubTab === 'body' && (
+                  <div className="animate-fade-in-up">
+                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
+                      <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-2">
+                        <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><Activity className="h-4 w-4 text-emerald-400" />Muscle Training Heatmap</div>
+                        <CardDescription className="text-xs lg:text-sm text-zinc-500">See which muscle groups you've been training most</CardDescription>
+                      </CardHeader>
+                      <CardContent className="px-3 sm:px-5 pb-5">
+                        <BodyHeatmap workoutLogs={allWorkoutSetsHistory} />
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </div>
             )}
 
