@@ -10,16 +10,29 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const date = searchParams.get('date');
-
-    if (!date) {
-      return NextResponse.json({ success: false, error: 'Date query parameter is required' }, { status: 400 });
-    }
+    const exercise = searchParams.get('exercise');
+    const all = searchParams.get('all') === 'true';
 
     const pool = await getDbPool(connectionString);
-    const result = await pool.query(
-      'SELECT id, date::text, exercise_name as "exerciseName", weight::float, reps, set_number as "setNumber" FROM workouts WHERE date = $1 ORDER BY created_at ASC',
-      [date]
-    );
+    let result;
+
+    if (date) {
+      result = await pool.query(
+        'SELECT id, date::text, exercise_name as "exerciseName", weight::float, reps, set_number as "setNumber" FROM workouts WHERE date = $1 ORDER BY created_at ASC',
+        [date]
+      );
+    } else if (exercise) {
+      result = await pool.query(
+        'SELECT id, date::text, exercise_name as "exerciseName", weight::float, reps, set_number as "setNumber" FROM workouts WHERE LOWER(exercise_name) = LOWER($1) ORDER BY date ASC, set_number ASC',
+        [exercise]
+      );
+    } else if (all) {
+      result = await pool.query(
+        'SELECT id, date::text, exercise_name as "exerciseName", weight::float, reps, set_number as "setNumber" FROM workouts ORDER BY date ASC, set_number ASC'
+      );
+    } else {
+      return NextResponse.json({ success: false, error: 'Date, exercise or all query parameter is required' }, { status: 400 });
+    }
 
     return NextResponse.json({ success: true, data: result.rows });
   } catch (error: any) {

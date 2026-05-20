@@ -40,11 +40,12 @@ interface WorkoutLog {
   setNumber: number;
 }
 interface Goals { calories: number; protein: number; carbs: number; fiber: number; fat: number; }
-interface ExerciseTemplate { name: string; category?: string; primaryMuscles?: string[]; }
-interface WeightLog { id?: number; date: string; weight: number; }
+interface ExerciseTemplate { name: string; category?: string; primaryMuscles?: string[]; equipment?: string; }
+interface WeightLog { id?: number; date: string; weight: number; bodyFat?: number | null; }
 interface WaterLog { id?: number; date: string; amount: number; }
+interface WorkoutSession { id?: number; date: string; duration: number; energy: number; notes: string; }
 type TabId = 'dashboard' | 'food' | 'workout' | 'insights' | 'settings';
-type InsightSubTab = 'calories' | 'weight' | 'water';
+type InsightSubTab = 'calories' | 'weight' | 'water' | 'workouts' | 'calendar';
 type TimeFrame = '7d' | '14d' | '30d' | 'all';
 
 function toDateStr(d: Date) {
@@ -124,6 +125,34 @@ export default function TrackFitApp() {
   const [workoutFormReps, setWorkoutFormReps] = useState(10);
   const [workoutDialogOpen, setWorkoutDialogOpen] = useState(false);
 
+  // Custom Exercise creation inside dialog
+  const [customExerciseName, setCustomExerciseName] = useState('');
+  const [customExerciseCategory, setCustomExerciseCategory] = useState('strength');
+  const [customExerciseMuscles, setCustomExerciseMuscles] = useState<string[]>([]);
+  const [showAddCustomExercise, setShowAddCustomExercise] = useState(false);
+  const [savingCustomExercise, setSavingCustomExercise] = useState(false);
+
+  // Body Fat State
+  const [bodyFatFormValue, setBodyFatFormValue] = useState<number | ''>('');
+
+  // Workout Session Summary state
+  const [sessionDuration, setSessionDuration] = useState<number | ''>('');
+  const [sessionEnergy, setSessionEnergy] = useState<number>(3);
+  const [sessionNotes, setSessionNotes] = useState('');
+  const [sessionId, setSessionId] = useState<number | undefined>(undefined);
+  const [isSavingSession, setIsSavingSession] = useState(false);
+  const [sessionLogsHistory, setSessionLogsHistory] = useState<any[]>([]);
+
+  // Exercise history and progress
+  const [allWorkoutSetsHistory, setAllWorkoutSetsHistory] = useState<WorkoutLog[]>([]);
+  const [selectedTrendExercise, setSelectedTrendExercise] = useState('');
+
+  // Consistency Calendar state
+  const [consistencyData, setConsistencyData] = useState<any[]>([]);
+  const [loadingConsistency, setLoadingConsistency] = useState(false);
+  const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState<number>(new Date().getMonth());
+
   // Goals form
   const [goalFormCalories, setGoalFormCalories] = useState(2000);
   const [goalFormProtein, setGoalFormProtein] = useState(130);
@@ -168,6 +197,77 @@ export default function TrackFitApp() {
     } catch { setMounted(true); setLoading(false); }
   }, []);
 
+  // ─── Consistency Data for Calendar ──────────────────────────────────────────
+  const getDemoConsistencyData = useCallback((startDateStr: string, endDateStr: string) => {
+    const start = new Date(startDateStr + 'T00:00:00');
+    const end = new Date(endDateStr + 'T00:00:00');
+    const result = [];
+    const allFoods = safeLocalGetJSON('trackfit_demo_foods', []);
+    const allWater = safeLocalGetJSON('trackfit_demo_water', []);
+    const allWorkouts = safeLocalGetJSON('trackfit_demo_workouts', []);
+    const allSessions = safeLocalGetJSON('trackfit_demo_sessions', []);
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const ds = toDateStr(d);
+      const dayFoods = allFoods.filter((f: any) => f.date === ds);
+      const dayCals = dayFoods.reduce((s: number, f: any) => s + (f.calories || 0), 0);
+      const dayWater = allWater.filter((w: any) => w.date === ds).reduce((s: number, w: any) => s + (w.amount || 0), 0);
+      const daySets = allWorkouts.filter((w: any) => w.date === ds).length;
+      const session = allSessions.find((s: any) => s.date === ds);
+      result.push({
+        date: ds,
+        calories: dayCals,
+        water: dayWater,
+        workout_sets: daySets,
+        sessionDuration: session ? session.duration : null,
+        sessionEnergy: session ? session.energy : null,
+      });
+    }
+    return result;
+  }, []);
+
+  const fetchConsistencyAndSessions = useCallback(async () => {
+    if (!dbConnected) return;
+    const today = new Date();
+    const past90 = new Date();
+    past90.setDate(today.getDate() - 90);
+    const calStart = new Date(calendarYear, calendarMonth, 1);
+    const calEnd = new Date(calendarYear, calendarMonth + 1, 0);
+    const start = past90 < calStart ? past90 : calStart;
+    const end = today > calEnd ? today : calEnd;
+    const startStr = toDateStr(start);
+    const endStr = toDateStr(end);
+    if (isDemoMode) {
+      const data = getDemoConsistencyData(startStr, endStr);
+      setConsistencyData(data);
+      const allSessions = safeLocalGetJSON('trackfit_demo_sessions', []);
+      setSessionLogsHistory(allSessions);
+      return;
+    }
+    setLoadingConsistency(true);
+    try {
+      const h = { 'x-db-connection-string': dbConn };
+      const [cRes, sRes] = await Promise.all([
+        fetch(`/api/workouts/consistency?startDate=${startStr}&endDate=${endStr}`, { headers: h }),
+        fetch('/api/workouts/session?summary=true', { headers: h })
+      ]);
+      const cData = await cRes.json();
+      if (cData.success) setConsistencyData(cData.data);
+      const sData = await sRes.json();
+      if (sData.success) setSessionLogsHistory(sData.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingConsistency(false);
+    }
+  }, [dbConnected, isDemoMode, dbConn, calendarYear, calendarMonth, getDemoConsistencyData]);
+
+  useEffect(() => {
+    if (dbConnected) {
+      fetchConsistencyAndSessions();
+    }
+  }, [dbConnected, isDemoMode, calendarYear, calendarMonth, fetchConsistencyAndSessions]);
+
   useEffect(() => {
     if (!dbConnected || !activeDate) return;
     fetchDataForDate(activeDate);
@@ -188,16 +288,36 @@ export default function TrackFitApp() {
       setFoodLogs(Array.isArray(allFoods) ? allFoods.filter((f: FoodLog) => f?.date === dateStr) : []);
       const allWorkouts = safeLocalGetJSON('trackfit_demo_workouts', []);
       setWorkoutLogs(Array.isArray(allWorkouts) ? allWorkouts.filter((w: WorkoutLog) => w?.date === dateStr) : []);
+      setAllWorkoutSetsHistory(allWorkouts);
       const allWeights = safeLocalGetJSON('trackfit_demo_weights', []);
       setWeightHistory(Array.isArray(allWeights) ? allWeights : []);
       const todayW = Array.isArray(allWeights) ? allWeights.find((w: WeightLog) => w?.date === dateStr) : null;
       setWeightLog(todayW || null);
-      if (todayW) setWeightFormValue(todayW.weight);
+      if (todayW) {
+        setWeightFormValue(todayW.weight);
+        setBodyFatFormValue(todayW.bodyFat !== undefined && todayW.bodyFat !== null ? todayW.bodyFat : '');
+      } else {
+        setBodyFatFormValue('');
+      }
       const allWater = safeLocalGetJSON('trackfit_demo_water', []);
       setWaterLogs(Array.isArray(allWater) ? allWater.filter((w: WaterLog) => w?.date === dateStr) : []);
       const waterByDate: Record<string, number> = {};
       if (Array.isArray(allWater)) allWater.forEach((w: WaterLog) => { if (w?.date) waterByDate[w.date] = (waterByDate[w.date] || 0) + (w.amount || 0); });
       setWaterHistory(Object.entries(waterByDate).map(([date, amount]) => ({ date, amount })).sort((a,b) => a.date.localeCompare(b.date)));
+
+      const allSessions = safeLocalGetJSON('trackfit_demo_sessions', []);
+      const todayS = Array.isArray(allSessions) ? allSessions.find((s: any) => s?.date === dateStr) : null;
+      if (todayS) {
+        setSessionDuration(todayS.duration);
+        setSessionEnergy(todayS.energy);
+        setSessionNotes(todayS.notes || '');
+        setSessionId(todayS.id);
+      } else {
+        setSessionDuration('');
+        setSessionEnergy(3);
+        setSessionNotes('');
+        setSessionId(undefined);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, [activeDate]);
@@ -244,7 +364,7 @@ export default function TrackFitApp() {
     setLoading(true);
     try {
       const h = { 'x-db-connection-string': dbConn };
-      const [gR, fR, wR, wtR, waR, wtHR, waHR] = await Promise.all([
+      const [gR, fR, wR, wtR, waR, wtHR, waHR, wsR, wkHR] = await Promise.all([
         fetch('/api/goals', { headers: h }),
         fetch(`/api/food?date=${date}`, { headers: h }),
         fetch(`/api/workouts?date=${date}`, { headers: h }),
@@ -252,17 +372,39 @@ export default function TrackFitApp() {
         fetch(`/api/water?date=${date}`, { headers: h }),
         fetch('/api/weight', { headers: h }),
         fetch('/api/water?summary=true', { headers: h }),
+        fetch(`/api/workouts/session?date=${date}`, { headers: h }),
+        fetch('/api/workouts?all=true', { headers: h }),
       ]);
       const gD = await gR.json();
       if (gD.success) { setGoals(gD.data); setGoalFormCalories(gD.data.calories); setGoalFormProtein(gD.data.protein); setGoalFormCarbs(gD.data.carbs); setGoalFormFiber(gD.data.fiber); setGoalFormFat(gD.data.fat); }
       const fD = await fR.json(); if (fD.success) setFoodLogs(fD.data);
       const wD = await wR.json(); if (wD.success) setWorkoutLogs(wD.data);
       const wtD = await wtR.json();
-      if (wtD.success && wtD.data.length > 0) { setWeightLog(wtD.data[0]); setWeightFormValue(wtD.data[0].weight); }
-      else { setWeightLog(null); }
+      if (wtD.success && wtD.data.length > 0) {
+        setWeightLog(wtD.data[0]);
+        setWeightFormValue(wtD.data[0].weight);
+        setBodyFatFormValue(wtD.data[0].bodyFat !== undefined && wtD.data[0].bodyFat !== null ? wtD.data[0].bodyFat : '');
+      }
+      else { setWeightLog(null); setBodyFatFormValue(''); }
       const waD = await waR.json(); if (waD.success) setWaterLogs(waD.data);
       const wtHD = await wtHR.json(); if (wtHD.success) setWeightHistory(wtHD.data);
       const waHD = await waHR.json(); if (waHD.success) setWaterHistory(waHD.data);
+
+      const wsD = await wsR.json();
+      if (wsD.success && wsD.data) {
+        setSessionDuration(wsD.data.duration);
+        setSessionEnergy(wsD.data.energy);
+        setSessionNotes(wsD.data.notes || '');
+        setSessionId(wsD.data.id);
+      } else {
+        setSessionDuration('');
+        setSessionEnergy(3);
+        setSessionNotes('');
+        setSessionId(undefined);
+      }
+
+      const wkHD = await wkHR.json();
+      if (wkHD.success) setAllWorkoutSetsHistory(wkHD.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, [isDemoMode, dbConn, loadDemoData]);
@@ -287,21 +429,38 @@ export default function TrackFitApp() {
 
   const searchExerciseApi = async (q: string) => {
     setSearchingExercise(true);
-    try { const r = await fetch(`/api/exercises?q=${encodeURIComponent(q)}`); const d = await r.json(); if (d.success) setExerciseSearchResults(d.data); }
+    try {
+      const h = !isDemoMode && dbConn ? { 'x-db-connection-string': dbConn } : undefined;
+      const r = await fetch(`/api/exercises?q=${encodeURIComponent(q)}`, { headers: h });
+      const d = await r.json();
+      if (d.success) {
+        let results = d.data;
+        if (isDemoMode) {
+          const demoCustom = safeLocalGetJSON('trackfit_demo_custom_exercises', []);
+          const searchTerm = q.toLowerCase();
+          const filteredDemo = demoCustom.filter((e: any) =>
+            e.name.toLowerCase().includes(searchTerm) ||
+            (e.primaryMuscles && e.primaryMuscles.some((m: string) => m.toLowerCase().includes(searchTerm))) ||
+            (e.category && e.category.toLowerCase().includes(searchTerm))
+          );
+          results = [...filteredDemo, ...results];
+        }
+        setExerciseSearchResults(results);
+      }
+    }
     catch {} finally { setSearchingExercise(false); }
   };
 
   const selectExercise = (name: string) => {
     setSelectedExercise(name); setExerciseSearchQuery(''); setExerciseSearchResults([]);
-    if (isDemoMode) {
-      const all = safeLocalGetJSON('trackfit_demo_workouts', []);
-      const hist = Array.isArray(all) ? all.filter((w: WorkoutLog) => w?.exerciseName?.toLowerCase() === name.toLowerCase()).sort((a: any, b: any) => b.date.localeCompare(a.date)) : [];
-      setExerciseHistory(hist.slice(0, 5));
-      if (hist.length > 0) { setWorkoutFormWeight(parseFloat(hist[0].weight)); setWorkoutFormReps(hist[0].reps); }
+    const hist = allWorkoutSetsHistory.filter((w: WorkoutLog) => w?.exerciseName?.toLowerCase() === name.toLowerCase()).sort((a: any, b: any) => b.date.localeCompare(a.date));
+    setExerciseHistory(hist.slice(0, 5));
+    if (hist.length > 0) {
+      setWorkoutFormWeight(hist[0].weight);
+      setWorkoutFormReps(hist[0].reps);
     } else {
-      const hist = workoutLogs.filter(w => w.exerciseName.toLowerCase() === name.toLowerCase());
-      setExerciseHistory(hist);
-      if (hist.length > 0) { setWorkoutFormWeight(hist[hist.length-1].weight); setWorkoutFormReps(hist[hist.length-1].reps); }
+      setWorkoutFormWeight(0);
+      setWorkoutFormReps(10);
     }
   };
 
@@ -352,6 +511,7 @@ export default function TrackFitApp() {
         const updated = all.map((f: FoodLog) => f.id === foodFormId ? { ...f, ...payload } : f);
         safeLocalSet('trackfit_demo_foods', JSON.stringify(updated));
         loadDemoData();
+        fetchConsistencyAndSessions();
       } else {
         try {
           const res = await fetch('/api/food', {
@@ -360,7 +520,10 @@ export default function TrackFitApp() {
             body: JSON.stringify({ id: foodFormId, ...payload }),
           });
           const data = await res.json();
-          if (data.success) setFoodLogs(prev => prev.map(f => f.id === foodFormId ? data.data : f));
+          if (data.success) {
+            setFoodLogs(prev => prev.map(f => f.id === foodFormId ? data.data : f));
+            fetchConsistencyAndSessions();
+          }
           else alert(data.error);
         } catch (e) { console.error(e); }
       }
@@ -370,6 +533,7 @@ export default function TrackFitApp() {
         const all = safeLocalGetJSON('trackfit_demo_foods', []);
         safeLocalSet('trackfit_demo_foods', JSON.stringify([...all, { ...payload, id: Date.now(), createdAt: new Date().toISOString() }]));
         loadDemoData();
+        fetchConsistencyAndSessions();
       } else {
         try {
           const res = await fetch('/api/food', {
@@ -378,7 +542,10 @@ export default function TrackFitApp() {
             body: JSON.stringify(payload),
           });
           const data = await res.json();
-          if (data.success) setFoodLogs(prev => [...prev, data.data]);
+          if (data.success) {
+            setFoodLogs(prev => [...prev, data.data]);
+            fetchConsistencyAndSessions();
+          }
         } catch (e) { console.error(e); }
       }
     }
@@ -389,12 +556,17 @@ export default function TrackFitApp() {
     if (id === undefined) return;
     if (isDemoMode) {
       safeLocalSet('trackfit_demo_foods', JSON.stringify(safeLocalGetJSON('trackfit_demo_foods', []).filter((f: any) => f.id !== id)));
-      loadDemoData(); return;
+      loadDemoData();
+      fetchConsistencyAndSessions();
+      return;
     }
     try {
       const r = await fetch(`/api/food?id=${id}`, { method: 'DELETE', headers: { 'x-db-connection-string': dbConn } });
       const d = await r.json();
-      if (d.success) setFoodLogs(prev => prev.filter(f => f.id !== id));
+      if (d.success) {
+        setFoodLogs(prev => prev.filter(f => f.id !== id));
+        fetchConsistencyAndSessions();
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -411,47 +583,159 @@ export default function TrackFitApp() {
     const item: WorkoutLog = { date: activeDate, exerciseName: selectedExercise, weight: workoutFormWeight, reps: workoutFormReps, setNumber: sets.length + 1 };
     if (isDemoMode) {
       const all = safeLocalGetJSON('trackfit_demo_workouts', []);
-      safeLocalSet('trackfit_demo_workouts', JSON.stringify([...all, { ...item, id: Date.now() }]));
-      loadDemoData(); return;
+      const newAll = [...all, { ...item, id: Date.now() }];
+      safeLocalSet('trackfit_demo_workouts', JSON.stringify(newAll));
+      loadDemoData();
+      setAllWorkoutSetsHistory(newAll);
+      fetchConsistencyAndSessions();
+      return;
     }
     try {
       const r = await fetch('/api/workouts', { method: 'POST', headers: { 'x-db-connection-string': dbConn, 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
       const d = await r.json();
-      if (d.success) setWorkoutLogs(prev => [...prev, d.data]);
+      if (d.success) {
+        setWorkoutLogs(prev => [...prev, d.data]);
+        const wkHR = await fetch('/api/workouts?all=true', { headers: { 'x-db-connection-string': dbConn } });
+        const wkHD = await wkHR.json();
+        if (wkHD.success) setAllWorkoutSetsHistory(wkHD.data);
+        fetchConsistencyAndSessions();
+      }
     } catch (e) { console.error(e); }
   };
 
   const handleDeleteSet = async (id?: number) => {
     if (id === undefined) return;
     if (isDemoMode) {
-      safeLocalSet('trackfit_demo_workouts', JSON.stringify(safeLocalGetJSON('trackfit_demo_workouts', []).filter((w: any) => w.id !== id)));
-      loadDemoData(); return;
+      const newAll = safeLocalGetJSON('trackfit_demo_workouts', []).filter((w: any) => w.id !== id);
+      safeLocalSet('trackfit_demo_workouts', JSON.stringify(newAll));
+      loadDemoData();
+      setAllWorkoutSetsHistory(newAll);
+      fetchConsistencyAndSessions();
+      return;
     }
     try {
       const r = await fetch(`/api/workouts?id=${id}`, { method: 'DELETE', headers: { 'x-db-connection-string': dbConn } });
       const d = await r.json();
-      if (d.success) setWorkoutLogs(prev => prev.filter(w => w.id !== id));
+      if (d.success) {
+        setWorkoutLogs(prev => prev.filter(w => w.id !== id));
+        const wkHR = await fetch('/api/workouts?all=true', { headers: { 'x-db-connection-string': dbConn } });
+        const wkHD = await wkHR.json();
+        if (wkHD.success) setAllWorkoutSetsHistory(wkHD.data);
+        fetchConsistencyAndSessions();
+      }
     } catch (e) { console.error(e); }
+  };
+
+  const handleCreateCustomExercise = async () => {
+    if (!customExerciseName.trim() || !customExerciseCategory) return;
+    setSavingCustomExercise(true);
+    const payload = {
+      name: customExerciseName.trim(),
+      category: customExerciseCategory,
+      primaryMuscles: customExerciseMuscles,
+    };
+    if (isDemoMode) {
+      const all = safeLocalGetJSON('trackfit_demo_custom_exercises', []);
+      if (all.some((e: any) => e.name.toLowerCase() === payload.name.toLowerCase())) {
+        alert('An exercise with this name already exists.');
+        setSavingCustomExercise(false);
+        return;
+      }
+      safeLocalSet('trackfit_demo_custom_exercises', JSON.stringify([...all, { ...payload, id: Date.now(), equipment: 'custom' }]));
+      setSavingCustomExercise(false);
+      selectExercise(payload.name);
+      setShowAddCustomExercise(false);
+      setCustomExerciseName('');
+      setCustomExerciseCategory('strength');
+      setCustomExerciseMuscles([]);
+      return;
+    }
+    try {
+      const r = await fetch('/api/exercises', {
+        method: 'POST',
+        headers: { 'x-db-connection-string': dbConn, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if (d.success) {
+        selectExercise(d.data.name);
+        setShowAddCustomExercise(false);
+        setCustomExerciseName('');
+        setCustomExerciseCategory('strength');
+        setCustomExerciseMuscles([]);
+      } else {
+        alert(d.error || 'Failed to create exercise');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingCustomExercise(false);
+    }
+  };
+
+  const handleSaveWorkoutSession = async () => {
+    if (sessionDuration === '') return;
+    setIsSavingSession(true);
+    const payload = {
+      date: activeDate,
+      duration: Number(sessionDuration),
+      energy: Number(sessionEnergy),
+      notes: sessionNotes
+    };
+    if (isDemoMode) {
+      const all = safeLocalGetJSON('trackfit_demo_sessions', []).filter((s: any) => s?.date !== activeDate);
+      safeLocalSet('trackfit_demo_sessions', JSON.stringify([...all, { ...payload, id: Date.now() }]));
+      loadDemoData();
+      setIsSavingSession(false);
+      fetchConsistencyAndSessions();
+      alert('Workout session summary saved!');
+      return;
+    }
+    try {
+      const r = await fetch('/api/workouts/session', {
+        method: 'POST',
+        headers: { 'x-db-connection-string': dbConn, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if (d.success) {
+        setSessionId(d.data.id);
+        fetchConsistencyAndSessions();
+        alert('Workout session summary saved!');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSavingSession(false);
+    }
   };
 
   // ─── Weight ───────────────────────────────────────────────────────────────────
   const handleLogWeight = async () => {
     if (!weightFormValue) return;
     const kg = weightUnit === 'lbs' ? weightFormValue / 2.20462 : weightFormValue;
+    const bodyFat = bodyFatFormValue !== '' ? Number(bodyFatFormValue) : null;
     if (isDemoMode) {
       const all = safeLocalGetJSON('trackfit_demo_weights', []).filter((w: WeightLog) => w?.date !== activeDate);
-      const entry = { id: Date.now(), date: activeDate, weight: kg };
+      const entry = { id: Date.now(), date: activeDate, weight: kg, bodyFat };
       safeLocalSet('trackfit_demo_weights', JSON.stringify([...all, entry]));
-      loadDemoData(); return;
+      loadDemoData();
+      fetchConsistencyAndSessions();
+      return;
     }
     try {
-      const r = await fetch('/api/weight', { method: 'POST', headers: { 'x-db-connection-string': dbConn, 'Content-Type': 'application/json' }, body: JSON.stringify({ date: activeDate, weight: kg }) });
+      const r = await fetch('/api/weight', {
+        method: 'POST',
+        headers: { 'x-db-connection-string': dbConn, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: activeDate, weight: kg, bodyFat })
+      });
       const d = await r.json();
       if (d.success) {
         setWeightLog(d.data);
         const hR = await fetch('/api/weight', { headers: { 'x-db-connection-string': dbConn } });
         const hD = await hR.json();
         if (hD.success) setWeightHistory(hD.data);
+        fetchConsistencyAndSessions();
       }
     } catch (e) { console.error(e); }
   };
@@ -461,7 +745,9 @@ export default function TrackFitApp() {
     if (isDemoMode) {
       const all = safeLocalGetJSON('trackfit_demo_water', []);
       safeLocalSet('trackfit_demo_water', JSON.stringify([...all, { id: Date.now(), date: activeDate, amount: ml }]));
-      loadDemoData(); return;
+      loadDemoData();
+      fetchConsistencyAndSessions();
+      return;
     }
     try {
       const r = await fetch('/api/water', { method: 'POST', headers: { 'x-db-connection-string': dbConn, 'Content-Type': 'application/json' }, body: JSON.stringify({ date: activeDate, amount: ml }) });
@@ -471,6 +757,7 @@ export default function TrackFitApp() {
         const hR = await fetch('/api/water?summary=true', { headers: { 'x-db-connection-string': dbConn } });
         const hD = await hR.json();
         if (hD.success) setWaterHistory(hD.data);
+        fetchConsistencyAndSessions();
       }
     } catch (e) { console.error(e); }
   };
@@ -479,12 +766,17 @@ export default function TrackFitApp() {
     if (id === undefined) return;
     if (isDemoMode) {
       safeLocalSet('trackfit_demo_water', JSON.stringify(safeLocalGetJSON('trackfit_demo_water', []).filter((w: any) => w.id !== id)));
-      loadDemoData(); return;
+      loadDemoData();
+      fetchConsistencyAndSessions();
+      return;
     }
     try {
       const r = await fetch(`/api/water?id=${id}`, { method: 'DELETE', headers: { 'x-db-connection-string': dbConn } });
       const d = await r.json();
-      if (d.success) setWaterLogs(prev => prev.filter(w => w.id !== id));
+      if (d.success) {
+        setWaterLogs(prev => prev.filter(w => w.id !== id));
+        fetchConsistencyAndSessions();
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -501,8 +793,60 @@ export default function TrackFitApp() {
 
   // ─── AI Sandwich ──────────────────────────────────────────────────────────────
   const getAiRecommendation = async () => {
-    if (!openAiKey) { alert('Add your OpenAI API key in Settings → AI Settings to use this feature.'); return; }
     setAiLoading(true); setAiRecommendation(null);
+    if (!openAiKey) {
+      // Local Coach fallback recommendation
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const remCals = goals.calories - dailyTotals.calories;
+      const remProtein = remaining.protein;
+      const remCarbs = remaining.carbs;
+      const remFat = remaining.fat;
+
+      let verdict = "Go for it!";
+      let reasoning = "";
+      let tip = "";
+
+      if (remCals <= 0) {
+        verdict = "Skip it";
+        reasoning = `You have already exceeded your daily calorie goal of ${goals.calories} kcal by ${Math.abs(Math.round(remCals))} kcal. Consuming "${sandName}" will push you further into a surplus.`;
+        tip = "Try swapping this snack for warm herbal tea or a glass of water to curb cravings without adding extra calories.";
+      } else if (sandCalories > remCals) {
+        verdict = "Skip it";
+        reasoning = `This item has ${sandCalories} kcal, which is more than your remaining calorie budget of ${Math.round(remCals)} kcal. It will push you over your daily target.`;
+        tip = "Save this item for tomorrow when your budget is fresh, or look for a snack under 150 kcal to stay on track.";
+      } else if (sandCalories > remCals * 0.6) {
+        verdict = "Maybe half?";
+        reasoning = `At ${sandCalories} kcal, this snack takes up ${Math.round((sandCalories/remCals)*100)}% of your remaining daily energy budget. Eating the full serving leaves you very little room for subsequent meals.`;
+        tip = `Try eating half of the portion today (${Math.round(sandCalories/2)} kcal) and saving the rest for tomorrow.`;
+      } else {
+        const isHighProtein = sandProtein >= 15;
+        const isHighFat = sandFat >= 12;
+        const isHighCarb = sandCarbs >= 25;
+
+        if (isHighProtein) {
+          verdict = "Go for it!";
+          reasoning = `This is an excellent high-protein snack! With ${sandProtein}g of protein, it fits well into your remaining calorie budget of ${Math.round(remCals)} kcal and will support muscle recovery and satiety.`;
+          tip = "Drink a glass of water with it to help digest the protein efficiently.";
+        } else if (isHighFat && remFat < sandFat) {
+          verdict = "Consider alternatives";
+          reasoning = `While it fits your calorie budget, this snack has ${sandFat}g of fat, which exceeds your remaining daily fat budget of ${Math.round(remFat)}g.`;
+          tip = "Look for a low-fat alternative like greek yogurt or a piece of fruit to satisfy your hunger instead.";
+        } else if (isHighCarb && remCarbs < sandCarbs) {
+          verdict = "Consider alternatives";
+          reasoning = `This snack is carb-heavy (${sandCarbs}g) and will exceed your remaining daily carb allowance of ${Math.round(remCarbs)}g.`;
+          tip = "Try a handful of almonds or a protein shake to keep carbs low and hit your protein target.";
+        } else {
+          verdict = "Go for it!";
+          reasoning = `This item fits neatly into your remaining targets. At ${sandCalories} kcal and balanced macros (P:${sandProtein}g, C:${sandCarbs}g, F:${sandFat}g), it will not disrupt your daily plan.`;
+          tip = "Try pairing this with a source of fiber to increase fullness throughout the afternoon.";
+        }
+      }
+
+      setAiRecommendation({ verdict, reasoning, tip });
+      setAiLoading(false);
+      return;
+    }
+
     try {
       const r = await fetch('/api/ai/sandwich', {
         method: 'POST',
@@ -588,13 +932,17 @@ export default function TrackFitApp() {
         return { date: ds, label: new Date(ds+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric'}), calories: Math.round(dayCals), target: goals.calories };
       });
     }
-    return dates.map((ds,i) => ({
-      date: ds,
-      label: new Date(ds+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric'}),
-      calories: ds === activeDate ? Math.round(dailyTotals.calories) : Math.round(goals.calories*(0.75+Math.sin(i*1.3)*0.3)),
-      target: goals.calories
-    }));
-  }, [isDemoMode, activeDate, dailyTotals, goals, chartTimeFrame]);
+    return dates.map((ds) => {
+      const dayData = consistencyData.find(c => c.date === ds);
+      const calories = dayData ? dayData.calories : (ds === activeDate ? dailyTotals.calories : 0);
+      return {
+        date: ds,
+        label: new Date(ds+'T00:00:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric'}),
+        calories: Math.round(calories),
+        target: goals.calories
+      };
+    });
+  }, [isDemoMode, activeDate, dailyTotals, goals, chartTimeFrame, consistencyData]);
 
   const isWslError = dbError.toLowerCase().includes('econnrefused') && (dbError.includes('::1') || dbError.includes('localhost'));
 
@@ -729,9 +1077,15 @@ export default function TrackFitApp() {
               <Lock className="h-3.5 w-3.5" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-600 hover:text-red-400" onClick={() => handleDeleteFood(food.id)}>
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          {editable ? (
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-600 hover:text-red-400" onClick={() => handleDeleteFood(food.id)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-700 cursor-not-allowed" disabled>
+              <Trash2 className="h-3.5 w-3.5 opacity-40" />
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -782,7 +1136,7 @@ export default function TrackFitApp() {
       </aside>
 
       {/* Demo Warning Popup (reusable) */}
-      {showDemoWarning && dbConnected && (
+      {showDemoWarning && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-[#141420] border border-amber-800/60 rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-3">
             <div className="flex items-center gap-2 text-amber-400">
@@ -903,7 +1257,7 @@ export default function TrackFitApp() {
                     <div className="text-[10px] text-zinc-500">of {(waterGoalMl/1000).toFixed(1)}L</div>
                     <div className="h-1.5 w-full bg-[#181822] rounded-full overflow-hidden mt-2"><div className="h-full bg-sky-400 transition-all duration-500 rounded-full" style={{width:`${Math.min(100,(totalWater/waterGoalMl)*100)}%`}}/></div>
                     <div className="flex gap-1.5 mt-2.5 flex-wrap">
-                      {[250,500].map(ml=><button key={ml} onClick={()=>handleLogWater(ml)} className="text-[10px] bg-sky-950/40 border border-sky-900/50 text-sky-300 px-2 py-1 rounded-lg hover:bg-sky-900/40 cursor-pointer font-medium">+{ml}ml</button>)}
+                      {[250,500,1000].map(ml=><button key={ml} onClick={()=>handleLogWater(ml)} className="text-[10px] bg-sky-950/40 border border-sky-900/50 text-sky-300 px-2 py-1 rounded-lg hover:bg-sky-900/40 cursor-pointer font-medium">+{ml}ml</button>)}
                     </div>
                   </Card>
 
@@ -913,12 +1267,18 @@ export default function TrackFitApp() {
                       <>
                         <div className="text-2xl font-extrabold text-violet-300">{displayWeight(weightLog.weight)}</div>
                         <div className="text-[10px] text-zinc-500">{weightUnit} today</div>
+                        {weightLog.bodyFat !== undefined && weightLog.bodyFat !== null && (
+                          <div className="text-[10px] text-zinc-400 mt-0.5">Body Fat: {weightLog.bodyFat}%</div>
+                        )}
                         {weightHistory.length>=2&&(()=>{const prev=weightHistory[weightHistory.length-2]?.weight;if(!prev)return null;const d=weightLog.weight-prev;return<div className={`text-[11px] font-semibold mt-1 ${d>0?'text-orange-400':'text-emerald-400'}`}>{d>0?'+':''}{(weightUnit==='lbs'?d*2.20462:d).toFixed(1)}{weightUnit}</div>})()}
                       </>
                     ) : (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <Input type="number" step="0.1" placeholder={weightUnit} value={weightFormValue||''} onChange={e=>setWeightFormValue(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs h-8 w-20 text-center"/>
-                        <button onClick={handleLogWeight} className="text-[10px] bg-violet-600/30 border border-violet-600/50 text-violet-300 px-2 py-1.5 rounded-lg hover:bg-violet-600/40 cursor-pointer font-medium">Log</button>
+                      <div className="flex flex-col gap-2 mt-1">
+                        <div className="flex items-center gap-1.5">
+                          <Input type="number" step="0.1" placeholder={`Weight (${weightUnit})`} value={weightFormValue||''} onChange={e=>setWeightFormValue(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-[10px] h-8 flex-1 text-center"/>
+                          <Input type="number" step="0.1" placeholder="Fat % (opt)" value={bodyFatFormValue||''} onChange={e=>setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-[10px] h-8 w-20 text-center"/>
+                        </div>
+                        <button onClick={handleLogWeight} className="text-[10px] w-full bg-violet-600/30 border border-violet-600/50 text-violet-300 py-1.5 rounded-lg hover:bg-violet-600/40 cursor-pointer font-medium text-center">Log Weight</button>
                       </div>
                     )}
                   </Card>
@@ -982,9 +1342,9 @@ export default function TrackFitApp() {
                         <button onClick={()=>setAiRecommendation(null)} className="text-[10px] text-zinc-600 hover:text-zinc-400 cursor-pointer">Dismiss</button>
                       </div>
                     ) : (
-                      <Button className={`w-full h-9 rounded-xl font-semibold text-xs ${openAiKey ? 'bg-indigo-600/20 border border-indigo-600/50 text-indigo-300 hover:bg-indigo-600/30' : 'bg-zinc-900 border border-zinc-700/50 text-zinc-500'}`}
+                      <Button className="w-full h-9 rounded-xl font-semibold text-xs bg-indigo-600/20 border border-indigo-650/40 text-indigo-300 hover:bg-indigo-600/35 cursor-pointer"
                         onClick={getAiRecommendation} disabled={aiLoading}>
-                        {aiLoading ? <><div className="h-3.5 w-3.5 animate-spin rounded-full border border-indigo-400 border-t-transparent mr-2"/>Asking AI...</> : <><Brain className="h-3.5 w-3.5 mr-1.5"/>{openAiKey?'Ask AI':'Ask AI (add key in Settings)'}</>}
+                        {aiLoading ? <><div className="h-3.5 w-3.5 animate-spin rounded-full border border-indigo-400 border-t-transparent mr-2"/>Asking AI...</> : <><Brain className="h-3.5 w-3.5 mr-1.5"/>{openAiKey?'Ask AI (OpenAI)':'Ask AI (Local Coach)'}</>}
                       </Button>
                     )}
                   </CardContent>
@@ -1122,21 +1482,74 @@ export default function TrackFitApp() {
                   <DialogContent className="bg-[#121219] border-[#222233] text-zinc-100 max-w-sm rounded-3xl p-5">
                     <DialogHeader><DialogTitle>Log Exercise Set</DialogTitle><DialogDescription className="text-xs text-zinc-500">Search the exercise database.</DialogDescription></DialogHeader>
                     {!selectedExercise?(
-                      <div className="space-y-2 relative">
-                        <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-500"/>
-                          <Input type="text" placeholder="e.g. Bench Press, Squat..." value={exerciseSearchQuery} onChange={e=>setExerciseSearchQuery(e.target.value)} className="pl-8 bg-[#181822] border-[#242436] text-xs h-9"/>
-                        </div>
-                        {exerciseSearchResults.length>0&&(
-                          <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto bg-[#1a1a26] border border-[#2d2d3f] rounded-lg shadow-xl z-50 divide-y divide-[#242434]">
-                            {exerciseSearchResults.map((ex,i)=>(
-                              <button key={i} className="w-full text-left px-3.5 py-2 text-[11px] hover:bg-[#222233] text-zinc-300" onClick={()=>selectExercise(ex.name)}>
-                                <div className="font-semibold">{ex.name}</div>
-                                <div className="text-[9px] text-zinc-500 mt-0.5">{ex.category} · {ex.primaryMuscles?.join(', ')}</div>
-                              </button>
-                            ))}
+                      showAddCustomExercise ? (
+                        <div className="space-y-3 border-t border-[#1d1d2b] pt-3">
+                          <div className="text-[11px] font-bold text-zinc-300">Add Custom Exercise</div>
+                          <div className="space-y-2">
+                            <div className="space-y-1">
+                              <Label className="text-[10px] text-zinc-500">Exercise Name</Label>
+                              <Input type="text" placeholder="e.g. Incline DB Press" value={customExerciseName} onChange={e=>setCustomExerciseName(e.target.value)} className="bg-[#181822] border-[#242436] text-xs h-8"/>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px] text-zinc-500">Category</Label>
+                              <select value={customExerciseCategory} onChange={e=>setCustomExerciseCategory(e.target.value)} className="w-full bg-[#181822] border-[#242436] rounded-md text-xs h-8 text-zinc-200 px-2">
+                                <option value="strength">Strength</option>
+                                <option value="cardio">Cardio</option>
+                                <option value="stretching">Stretching</option>
+                                <option value="plyometrics">Plyometrics</option>
+                                <option value="powerlifting">Powerlifting</option>
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px] text-zinc-500">Primary Muscles</Label>
+                              <div className="grid grid-cols-3 gap-1.5 pt-1">
+                                {['Chest', 'Back', 'Quads', 'Hamstrings', 'Shoulders', 'Biceps', 'Triceps', 'Abs', 'Calves'].map(muscle => {
+                                  const checked = customExerciseMuscles.includes(muscle);
+                                  return (
+                                    <label key={muscle} className="flex items-center gap-1 text-[9px] text-zinc-400 cursor-pointer">
+                                      <input type="checkbox" checked={checked} onChange={() => {
+                                        if (checked) {
+                                          setCustomExerciseMuscles(customExerciseMuscles.filter(m => m !== muscle));
+                                        } else {
+                                          setCustomExerciseMuscles([...customExerciseMuscles, muscle]);
+                                        }
+                                      }} className="rounded bg-[#181822] border-[#242436]"/>
+                                      {muscle}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                          <div className="flex gap-2 pt-2">
+                            <Button className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs h-8" onClick={() => { setShowAddCustomExercise(false); setCustomExerciseName(''); }}>Cancel</Button>
+                            <Button className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-8" onClick={handleCreateCustomExercise} disabled={savingCustomExercise}>
+                              {savingCustomExercise ? 'Creating...' : 'Save & Select'}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 relative">
+                          <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-500"/>
+                            <Input type="text" placeholder="e.g. Bench Press, Squat..." value={exerciseSearchQuery} onChange={e=>setExerciseSearchQuery(e.target.value)} className="pl-8 bg-[#181822] border-[#242436] text-xs h-9"/>
+                          </div>
+                          {exerciseSearchResults.length>0&&(
+                            <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto bg-[#1a1a26] border border-[#2d2d3f] rounded-lg shadow-xl z-50 divide-y divide-[#242434]">
+                              {exerciseSearchResults.map((ex,i)=>(
+                                <button key={i} className="w-full text-left px-3.5 py-2 text-[11px] hover:bg-[#222233] text-zinc-300" onClick={()=>selectExercise(ex.name)}>
+                                  <div className="font-semibold">{ex.name}</div>
+                                  <div className="text-[9px] text-zinc-500 mt-0.5">{ex.category} · {ex.primaryMuscles?.join(', ')}</div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <div className="pt-2 text-center">
+                            <button className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium underline" onClick={() => setShowAddCustomExercise(true)}>
+                              Can't find it? Add Custom Exercise
+                            </button>
+                          </div>
+                        </div>
+                      )
                     ):(
                       <div className="space-y-3">
                         <div className="p-3 bg-indigo-950/20 border border-indigo-900/35 rounded-xl flex justify-between items-center">
@@ -1165,11 +1578,15 @@ export default function TrackFitApp() {
             {activeTab==='insights' && (
               <div className="space-y-4 text-xs">
                 {/* Sub-tabs */}
-                <div className="flex bg-zinc-950 border border-zinc-800/60 rounded-xl p-0.5 gap-0.5">
-                  {(['calories','weight','water'] as InsightSubTab[]).map(t=>(
-                    <button key={t} onClick={()=>setInsightSubTab(t)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer capitalize ${insightSubTab===t?'bg-zinc-800 text-zinc-100 shadow-sm':'text-zinc-400 hover:text-zinc-200'}`}>
-                      {t==='calories'&&<Flame className="h-3.5 w-3.5"/>}{t==='weight'&&<Scale className="h-3.5 w-3.5"/>}{t==='water'&&<Droplets className="h-3.5 w-3.5"/>}
-                      {t.charAt(0).toUpperCase()+t.slice(1)}
+                <div className="flex bg-zinc-950 border border-zinc-800/60 rounded-xl p-0.5 gap-0.5 overflow-x-auto scrollbar-none">
+                  {(['calories','weight','water','workouts','calendar'] as InsightSubTab[]).map(t=>(
+                    <button key={t} onClick={()=>setInsightSubTab(t)} className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer capitalize whitespace-nowrap ${insightSubTab===t?'bg-zinc-800 text-zinc-100 shadow-sm':'text-zinc-400 hover:text-zinc-200'}`}>
+                      {t==='calories'&&<Flame className="h-3.5 w-3.5"/>}
+                      {t==='weight'&&<Scale className="h-3.5 w-3.5"/>}
+                      {t==='water'&&<Droplets className="h-3.5 w-3.5"/>}
+                      {t==='workouts'&&<Dumbbell className="h-3.5 w-3.5"/>}
+                      {t==='calendar'&&<CalendarIcon className="h-3.5 w-3.5"/>}
+                      {t === 'calendar' ? 'Consistency' : t}
                     </button>
                   ))}
                 </div>
@@ -1252,15 +1669,23 @@ export default function TrackFitApp() {
                         {weightLog ? (
                           <div className="flex items-center justify-between">
                             <div>
-                              <div className="text-3xl font-extrabold text-violet-300">{displayWeight(weightLog.weight)} <span className="text-sm text-zinc-400 font-normal">{weightUnit}</span></div>
+                              <div className="text-3xl font-extrabold text-violet-300">
+                                {displayWeight(weightLog.weight)} <span className="text-sm text-zinc-400 font-normal">{weightUnit}</span>
+                                {weightLog.bodyFat !== undefined && weightLog.bodyFat !== null && (
+                                  <span className="text-xs text-zinc-400 font-normal ml-3">· Body Fat: {weightLog.bodyFat}%</span>
+                                )}
+                              </div>
                               {getFilteredWeightHistory.length>=2&&(()=>{const prev=getFilteredWeightHistory[getFilteredWeightHistory.length-2]?.weight;if(!prev)return null;const d=weightLog.weight-prev;return<div className={`text-xs font-semibold mt-1 ${d>0?'text-orange-400':'text-emerald-400'}`}>{d>0?'▲':'▼'} {Math.abs(weightUnit==='lbs'?d*2.20462:d).toFixed(1)} {weightUnit} vs prev entry</div>})()}
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400" onClick={()=>{setWeightLog(null);setWeightFormValue(0);}}><X className="h-4 w-4"/></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400" onClick={()=>{setWeightLog(null);setWeightFormValue(0);setBodyFatFormValue('');}}><X className="h-4 w-4"/></Button>
                           </div>
                         ):(
-                          <div className="flex items-center gap-3">
-                            <Input type="number" step="0.1" placeholder={`Weight in ${weightUnit}`} value={weightFormValue||''} onChange={e=>setWeightFormValue(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-sm h-10 flex-1"/>
-                            <Button className="bg-violet-600 hover:bg-violet-500 text-white h-10 px-4" onClick={handleLogWeight}>Log</Button>
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-3">
+                              <Input type="number" step="0.1" placeholder={`Weight in ${weightUnit}`} value={weightFormValue||''} onChange={e=>setWeightFormValue(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-sm h-10 flex-1"/>
+                              <Input type="number" step="0.1" placeholder="Fat % (optional)" value={bodyFatFormValue||''} onChange={e=>setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-sm h-10 w-32 text-center"/>
+                            </div>
+                            <Button className="bg-violet-600 hover:bg-violet-500 text-white h-10 w-full" onClick={handleLogWeight}>Log weight entry</Button>
                           </div>
                         )}
                       </CardContent>
@@ -1473,6 +1898,162 @@ export default function TrackFitApp() {
                     )}
                   </div>
                 )}
+
+                {/* ── Workouts ── */}
+                {insightSubTab==='workouts' && (
+                  <div className="space-y-4">
+                    <Card className="bg-[#0e1218] border-[#1a2530]/80 rounded-2xl">
+                      <CardHeader className="py-4 px-5 pb-3">
+                        <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300">
+                          <Dumbbell className="h-4 w-4 text-emerald-400"/>
+                          Workout Session Summary
+                        </div>
+                        <CardDescription className="text-[10px] text-zinc-500">Log workout details for {activeDate}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="px-5 pb-5 space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500">Duration (minutes)</Label>
+                            <Input type="number" placeholder="e.g. 45" value={sessionDuration} onChange={e=>setSessionDuration(e.target.value === '' ? '' : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs h-8"/>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-zinc-500">Energy Burned (kcal)</Label>
+                            <Input type="number" placeholder="e.g. 350" value={sessionEnergy||''} onChange={e=>setSessionEnergy(e.target.value === '' ? 0 : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs h-8"/>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-zinc-500">Notes / Highlights</Label>
+                          <Input type="text" placeholder="e.g. Hit new PR on squats, felt high energy" value={sessionNotes} onChange={e=>setSessionNotes(e.target.value)} className="bg-[#181822] border-[#242436] text-xs h-8"/>
+                        </div>
+                        <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-9 rounded-lg mt-1" onClick={handleSaveWorkoutSession} disabled={isSavingSession}>
+                          {isSavingSession ? 'Saving...' : 'Save Session Summary'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    {/* Workout Sessions History List */}
+                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
+                      <CardHeader className="py-4 px-5 pb-2">
+                        <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><TrendingUp className="h-4 w-4 text-emerald-400"/>Session Logs</div>
+                        <CardDescription className="text-[10px] text-zinc-500">{sessionLogsHistory.length} sessions logged this month</CardDescription>
+                      </CardHeader>
+                      <CardContent className="px-4 pb-4">
+                        {sessionLogsHistory.length===0?(
+                          <div className="text-center text-zinc-600 text-xs py-8 italic">No workout sessions logged yet.</div>
+                        ):(
+                          <div className="space-y-2 max-h-60 overflow-y-auto divide-y divide-[#1e1e2d] pr-1">
+                            {sessionLogsHistory.map((s: any, i: number)=>(
+                              <div key={s.id||i} className="pt-2.5 first:pt-0 flex flex-col gap-1 text-[11px]">
+                                <div className="flex justify-between items-center text-zinc-300 font-medium">
+                                  <span>{new Date(s.date+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span>
+                                  <span className="text-emerald-400 font-bold">{s.duration}m · {s.energy} kcal</span>
+                                </div>
+                                {s.notes && (
+                                  <div className="text-zinc-500 text-[10px] italic bg-[#151520] p-1.5 rounded-md border border-[#20202d]/60">{s.notes}</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* ── Consistency Calendar ── */}
+                {insightSubTab==='calendar' && (() => {
+                  const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+                  const totalDays = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+                  const daysGrid = [];
+                  for (let i = 0; i < firstDay; i++) {
+                    daysGrid.push(null);
+                  }
+                  for (let d = 1; d <= totalDays; d++) {
+                    const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    daysGrid.push({ dayNum: d, dateStr });
+                  }
+
+                  const handlePrevMonth = () => {
+                    if (calendarMonth === 0) {
+                      setCalendarMonth(11);
+                      setCalendarYear(calendarYear - 1);
+                    } else {
+                      setCalendarMonth(calendarMonth - 1);
+                    }
+                  };
+
+                  const handleNextMonth = () => {
+                    if (calendarMonth === 11) {
+                      setCalendarMonth(0);
+                      setCalendarYear(calendarYear + 1);
+                    } else {
+                      setCalendarMonth(calendarMonth + 1);
+                    }
+                  };
+
+                  const monthName = new Date(calendarYear, calendarMonth, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+                  return (
+                    <div className="space-y-4">
+                      <Card className="bg-[#0e0e14] border-[#1d1d2b] rounded-2xl p-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <button onClick={handlePrevMonth} className="p-1.5 text-zinc-400 hover:text-zinc-200 cursor-pointer font-bold">◀</button>
+                          <span className="font-extrabold text-xs text-zinc-200">{monthName}</span>
+                          <button onClick={handleNextMonth} className="p-1.5 text-zinc-400 hover:text-zinc-200 cursor-pointer font-bold">▶</button>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex justify-center gap-4 text-[10px] text-zinc-500 pb-3 border-b border-[#1c1c2b] mb-3">
+                          <span className="flex items-center gap-1">🍏 Diet</span>
+                          <span className="flex items-center gap-1">💧 Water</span>
+                          <span className="flex items-center gap-1">🏋️ Lifted</span>
+                        </div>
+
+                        {/* Weekday Labels */}
+                        <div className="grid grid-cols-7 text-center text-[10px] text-zinc-600 font-semibold mb-1">
+                          <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                        </div>
+
+                        {/* Calendar Grid */}
+                        <div className="grid grid-cols-7 gap-1">
+                          {daysGrid.map((cell, idx) => {
+                            if (!cell) return <div key={idx} className="h-11" />;
+                            const { dayNum, dateStr } = cell;
+                            const isActive = dateStr === activeDate;
+                            const isToday = dateStr === toDateStr(new Date());
+                            
+                            // Find consistency matching this dateStr
+                            const dayData = consistencyData.find(c => c.date === dateStr);
+                            const hasDiet = dayData && dayData.calories > 0 && dayData.calories <= goals.calories;
+                            const hasWater = dayData && dayData.water >= waterGoalMl;
+                            const hasWorkout = dayData && (dayData.workout_sets > 0 || dayData.workout_session > 0);
+
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => setActiveDate(dateStr)}
+                                className={`h-11 flex flex-col justify-between items-center p-1 rounded-xl cursor-pointer transition-all border ${
+                                  isActive
+                                    ? 'bg-[#18182c] border-indigo-500 shadow-md text-indigo-300 font-bold'
+                                    : isToday
+                                    ? 'bg-[#121219] border-zinc-500 text-zinc-100 font-bold'
+                                    : 'bg-[#14141d]/50 hover:bg-[#1a1a29]/70 border-[#222234]/40 text-zinc-400'
+                                }`}
+                              >
+                                <span className="text-[9px]">{dayNum}</span>
+                                <div className="flex gap-[1px] justify-center items-center h-3.5">
+                                  {hasDiet && <span className="text-[8px] leading-none">🍏</span>}
+                                  {hasWater && <span className="text-[8px] leading-none">💧</span>}
+                                  {hasWorkout && <span className="text-[8px] leading-none">🏋️</span>}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </Card>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

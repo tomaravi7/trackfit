@@ -141,6 +141,11 @@ async function initializeSchema(pool: Pool) {
       )
     `);
 
+    // Alter weight_logs to add body_fat if it doesn't exist
+    await client.query(`
+      ALTER TABLE weight_logs ADD COLUMN IF NOT EXISTS body_fat NUMERIC
+    `);
+
     // Create indexes for weight_logs
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_weight_logs_date ON weight_logs(date)
@@ -159,6 +164,29 @@ async function initializeSchema(pool: Pool) {
     // Create indexes for water_logs
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_water_logs_date ON water_logs(date)
+    `);
+
+    // Create custom_exercises table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS custom_exercises (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        category VARCHAR(100),
+        primary_muscles TEXT[] DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create workout_sessions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS workout_sessions (
+        id SERIAL PRIMARY KEY,
+        date DATE NOT NULL UNIQUE,
+        duration_minutes INTEGER NOT NULL,
+        energy_level INTEGER NOT NULL,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
     `);
 
     await client.query('COMMIT');

@@ -10,25 +10,30 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const date = searchParams.get('date');
+    const summary = searchParams.get('summary') === 'true';
 
     const pool = await getDbPool(connectionString);
-    let result;
 
-    if (date) {
-      result = await pool.query(
-        'SELECT id, date::text, weight::float, body_fat::float as "bodyFat" FROM weight_logs WHERE date = $1',
-        [date]
+    if (summary) {
+      // Get all sessions for insights charts
+      const result = await pool.query(
+        'SELECT date::text, duration_minutes as "duration", energy_level as "energy", notes FROM workout_sessions ORDER BY date ASC'
       );
-    } else {
-      // Fetch more than 30 for flexible timeframes
-      result = await pool.query(
-        'SELECT id, date::text, weight::float, body_fat::float as "bodyFat" FROM weight_logs ORDER BY date ASC'
-      );
+      return NextResponse.json({ success: true, data: result.rows });
     }
 
-    return NextResponse.json({ success: true, data: result.rows });
+    if (!date) {
+      return NextResponse.json({ success: false, error: 'Missing date parameter' }, { status: 400 });
+    }
+
+    const result = await pool.query(
+      'SELECT id, date::text, duration_minutes as "duration", energy_level as "energy", notes FROM workout_sessions WHERE date = $1',
+      [date]
+    );
+
+    return NextResponse.json({ success: true, data: result.rows[0] || null });
   } catch (error: any) {
-    console.error('Failed to fetch weight logs:', error);
+    console.error('Failed to fetch workout session:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -41,23 +46,27 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { date, weight, bodyFat } = body;
+    const { date, duration, energy, notes } = body;
 
-    if (!date || weight === undefined) {
-      return NextResponse.json({ success: false, error: 'Missing date or weight' }, { status: 400 });
+    if (!date || duration === undefined || energy === undefined) {
+      return NextResponse.json({ success: false, error: 'Missing date, duration or energy level' }, { status: 400 });
     }
 
     const pool = await getDbPool(connectionString);
     const result = await pool.query(
-      `INSERT INTO weight_logs (date, weight, body_fat) VALUES ($1, $2, $3)
-       ON CONFLICT (date) DO UPDATE SET weight = EXCLUDED.weight, body_fat = EXCLUDED.body_fat
-       RETURNING id, date::text, weight::float, body_fat::float as "bodyFat"`,
-      [date, weight, bodyFat !== undefined ? bodyFat : null]
+      `INSERT INTO workout_sessions (date, duration_minutes, energy_level, notes)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (date) DO UPDATE SET 
+         duration_minutes = EXCLUDED.duration_minutes,
+         energy_level = EXCLUDED.energy_level,
+         notes = EXCLUDED.notes
+       RETURNING id, date::text, duration_minutes as "duration", energy_level as "energy", notes`,
+      [date, duration, energy, notes || '']
     );
 
     return NextResponse.json({ success: true, data: result.rows[0] });
   } catch (error: any) {
-    console.error('Failed to log weight:', error);
+    console.error('Failed to log workout session:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -77,11 +86,11 @@ export async function DELETE(req: NextRequest) {
     }
 
     const pool = await getDbPool(connectionString);
-    await pool.query('DELETE FROM weight_logs WHERE id = $1', [id]);
+    await pool.query('DELETE FROM workout_sessions WHERE id = $1', [id]);
 
-    return NextResponse.json({ success: true, message: 'Weight entry deleted' });
+    return NextResponse.json({ success: true, message: 'Workout session deleted successfully' });
   } catch (error: any) {
-    console.error('Failed to delete weight log:', error);
+    console.error('Failed to delete workout session:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
