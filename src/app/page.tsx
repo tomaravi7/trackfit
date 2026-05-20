@@ -1367,7 +1367,7 @@ export default function TrackFitApp() {
               <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0">
 
                 {/* Calorie Ring */}
-                <Card className="bg-gradient-to-b from-[#14141c] to-[#101017] dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
+                <Card className="dark:bg-gradient-to-b dark:from-[#14141c] dark:to-[#101017] bg-gradient-to-b from-gray-50 to-gray-100 dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
                   <CardContent className="pt-6 flex flex-col items-center">
                     <div className="relative flex items-center justify-center w-36 h-36">
                       <svg className="w-full h-full -rotate-90">
