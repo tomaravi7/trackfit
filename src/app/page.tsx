@@ -47,7 +47,7 @@ interface WaterLog { id?: number; date: string; amount: number; }
 interface WorkoutSession { id?: number; date: string; duration: number; energy: number; notes: string; }
 type TabId = 'dashboard' | 'food' | 'workout' | 'insights' | 'settings';
 type InsightSubTab = 'calories' | 'weight' | 'water' | 'workouts' | 'calendar' | 'body';
-type TimeFrame = '7d' | '14d' | '30d' | 'all';
+type TimeFrame = '7d' | '14d' | '30d' | 'all' | 'custom';
 
 function toDateStr(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -66,10 +66,12 @@ function hoursAgo(createdAt?: string): number {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TrackFitApp() {
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
-  const [insightSubTab, setInsightSubTab] = useState<InsightSubTab>('calories');
+  const [insightSubTab, setInsightSubTab] = useState<InsightSubTab>('body');
   const [activeDate, setActiveDate] = useState('');
   const [mounted, setMounted] = useState(false);
   const [chartTimeFrame, setChartTimeFrame] = useState<TimeFrame>('14d');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   // DB State
   const [dbConn, setDbConn] = useState('');
@@ -143,13 +145,17 @@ export default function TrackFitApp() {
   // Body Fat State
   const [bodyFatFormValue, setBodyFatFormValue] = useState<number | ''>('');
 
-  // Workout Session Summary state
-  const [sessionDuration, setSessionDuration] = useState<number | ''>('');
-  const [sessionEnergy, setSessionEnergy] = useState<number>(3);
+  // Workout Session Timer state
+  const [workoutTimerRunning, setWorkoutTimerRunning] = useState(false);
+  const [workoutTimerSeconds, setWorkoutTimerSeconds] = useState(0);
+  const [workoutTimerStart, setWorkoutTimerStart] = useState<Date | null>(null);
   const [sessionNotes, setSessionNotes] = useState('');
-  const [sessionId, setSessionId] = useState<number | undefined>(undefined);
   const [isSavingSession, setIsSavingSession] = useState(false);
   const [sessionLogsHistory, setSessionLogsHistory] = useState<any[]>([]);
+  const [deleteSessionId, setDeleteSessionId] = useState<number | null>(null);
+  const [manualDuration, setManualDuration] = useState<number | ''>('');
+  const [manualNotes, setManualNotes] = useState('');
+  const [showManualForm, setShowManualForm] = useState(false);
 
   // Exercise history and progress
   const [allWorkoutSetsHistory, setAllWorkoutSetsHistory] = useState<WorkoutLog[]>([]);
@@ -204,6 +210,15 @@ export default function TrackFitApp() {
       else setLoading(false);
     } catch { setMounted(true); setLoading(false); }
   }, []);
+
+  // ─── Workout Timer Tick ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!workoutTimerRunning) return;
+    const interval = setInterval(() => {
+      setWorkoutTimerSeconds(s => s + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [workoutTimerRunning]);
 
   // ─── Consistency Data for Calendar ──────────────────────────────────────────
   const getDemoConsistencyData = useCallback((startDateStr: string, endDateStr: string) => {
@@ -316,15 +331,9 @@ export default function TrackFitApp() {
       const allSessions = safeLocalGetJSON('trackfit_demo_sessions', []);
       const todayS = Array.isArray(allSessions) ? allSessions.find((s: any) => s?.date === dateStr) : null;
       if (todayS) {
-        setSessionDuration(todayS.duration);
-        setSessionEnergy(todayS.energy);
         setSessionNotes(todayS.notes || '');
-        setSessionId(todayS.id);
       } else {
-        setSessionDuration('');
-        setSessionEnergy(3);
         setSessionNotes('');
-        setSessionId(undefined);
       }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -400,15 +409,9 @@ export default function TrackFitApp() {
 
       const wsD = await wsR.json();
       if (wsD.success && wsD.data) {
-        setSessionDuration(wsD.data.duration);
-        setSessionEnergy(wsD.data.energy);
         setSessionNotes(wsD.data.notes || '');
-        setSessionId(wsD.data.id);
       } else {
-        setSessionDuration('');
-        setSessionEnergy(3);
         setSessionNotes('');
-        setSessionId(undefined);
       }
 
       const wkHD = await wkHR.json();
@@ -704,13 +707,14 @@ export default function TrackFitApp() {
   };
 
   const handleSaveWorkoutSession = async () => {
-    if (sessionDuration === '') return;
+    if (workoutTimerSeconds === 0 && !sessionNotes.trim()) return;
     setIsSavingSession(true);
+    const durationMin = Math.round(workoutTimerSeconds / 60);
     const payload = {
       date: activeDate,
-      duration: Number(sessionDuration),
-      energy: Number(sessionEnergy),
-      notes: sessionNotes
+      duration: durationMin,
+      energy: 0,
+      notes: sessionNotes.trim()
     };
     if (isDemoMode) {
       const all = safeLocalGetJSON('trackfit_demo_sessions', []).filter((s: any) => s?.date !== activeDate);
@@ -718,7 +722,10 @@ export default function TrackFitApp() {
       loadDemoData();
       setIsSavingSession(false);
       fetchConsistencyAndSessions();
-      alert('Workout session summary saved!');
+      setWorkoutTimerRunning(false);
+      setWorkoutTimerSeconds(0);
+      setWorkoutTimerStart(null);
+      setSessionNotes('');
       return;
     }
     try {
@@ -729,9 +736,78 @@ export default function TrackFitApp() {
       });
       const d = await r.json();
       if (d.success) {
-        setSessionId(d.data.id);
         fetchConsistencyAndSessions();
-        alert('Workout session summary saved!');
+        setWorkoutTimerRunning(false);
+        setWorkoutTimerSeconds(0);
+        setWorkoutTimerStart(null);
+        setSessionNotes('');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSavingSession(false);
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: number) => {
+    setDeleteSessionId(sessionId);
+  };
+
+  const confirmDeleteSession = async () => {
+    if (deleteSessionId === null) return;
+    if (isDemoMode) {
+      const all = safeLocalGetJSON('trackfit_demo_sessions', []).filter((s: any) => s?.id !== deleteSessionId);
+      safeLocalSet('trackfit_demo_sessions', JSON.stringify(all));
+      loadDemoData();
+      fetchConsistencyAndSessions();
+      setDeleteSessionId(null);
+      return;
+    }
+    try {
+      await fetch(`/api/workouts/session?id=${deleteSessionId}`, {
+        method: 'DELETE',
+        headers: { 'x-db-connection-string': dbConn }
+      });
+      fetchConsistencyAndSessions();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeleteSessionId(null);
+    }
+  };
+
+  const handleSaveManualSession = async () => {
+    if (manualDuration === '' || Number(manualDuration) <= 0) return;
+    setIsSavingSession(true);
+    const payload = {
+      date: activeDate,
+      duration: Number(manualDuration),
+      energy: 0,
+      notes: manualNotes.trim()
+    };
+    if (isDemoMode) {
+      const all = safeLocalGetJSON('trackfit_demo_sessions', []).filter((s: any) => s?.date !== activeDate);
+      safeLocalSet('trackfit_demo_sessions', JSON.stringify([...all, { ...payload, id: Date.now() }]));
+      loadDemoData();
+      setIsSavingSession(false);
+      fetchConsistencyAndSessions();
+      setManualDuration('');
+      setManualNotes('');
+      setShowManualForm(false);
+      return;
+    }
+    try {
+      const r = await fetch('/api/workouts/session', {
+        method: 'POST',
+        headers: { 'x-db-connection-string': dbConn, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if (d.success) {
+        fetchConsistencyAndSessions();
+        setManualDuration('');
+        setManualNotes('');
+        setShowManualForm(false);
       }
     } catch (e) {
       console.error(e);
@@ -926,6 +1002,17 @@ export default function TrackFitApp() {
   };
 
   // ─── Grouped Workouts ─────────────────────────────────────────────────────────
+  const filteredWorkoutLogsForHeatmap = useMemo(() => {
+    if (chartTimeFrame === 'custom' && customStartDate && customEndDate) {
+      const start = new Date(customStartDate + 'T00:00:00');
+      const end = new Date(customEndDate + 'T23:59:59');
+      return allWorkoutSetsHistory.filter(w => { const d = new Date(w.date + 'T00:00:00'); return d >= start && d <= end; });
+    }
+    const days = chartTimeFrame === '7d' ? 7 : chartTimeFrame === '14d' ? 14 : chartTimeFrame === '30d' ? 30 : 99999;
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+    return allWorkoutSetsHistory.filter(w => new Date(w.date + 'T00:00:00') >= cutoff);
+  }, [allWorkoutSetsHistory, chartTimeFrame, customStartDate, customEndDate]);
+
   const groupedWorkouts = useMemo(() => {
     const g: Record<string, WorkoutLog[]> = {};
     workoutLogs.forEach(l => { if (!g[l.exerciseName]) g[l.exerciseName] = []; g[l.exerciseName].push(l); });
@@ -935,25 +1022,43 @@ export default function TrackFitApp() {
 
   // ─── Chart Helpers ────────────────────────────────────────────────────────────
   const getFilteredWeightHistory = useMemo(() => {
+    if (chartTimeFrame === 'custom' && customStartDate && customEndDate) {
+      const start = new Date(customStartDate + 'T00:00:00');
+      const end = new Date(customEndDate + 'T23:59:59');
+      return weightHistory.filter(w => { const d = new Date(w.date + 'T00:00:00'); return d >= start && d <= end; });
+    }
     const days = chartTimeFrame === '7d' ? 7 : chartTimeFrame === '14d' ? 14 : chartTimeFrame === '30d' ? 30 : 9999;
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
     return weightHistory.filter(w => new Date(w.date + 'T00:00:00') >= cutoff);
-  }, [weightHistory, chartTimeFrame]);
+  }, [weightHistory, chartTimeFrame, customStartDate, customEndDate]);
 
   const getFilteredWaterHistory = useMemo(() => {
+    if (chartTimeFrame === 'custom' && customStartDate && customEndDate) {
+      const start = new Date(customStartDate + 'T00:00:00');
+      const end = new Date(customEndDate + 'T23:59:59');
+      return waterHistory.filter(w => { const d = new Date(w.date + 'T00:00:00'); return d >= start && d <= end; });
+    }
     const days = chartTimeFrame === '7d' ? 7 : chartTimeFrame === '14d' ? 14 : chartTimeFrame === '30d' ? 30 : 9999;
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
     return waterHistory.filter(w => new Date(w.date + 'T00:00:00') >= cutoff);
-  }, [waterHistory, chartTimeFrame]);
+  }, [waterHistory, chartTimeFrame, customStartDate, customEndDate]);
 
   // Calorie chart data (last N days)
   const historyData = useMemo(() => {
     if (!activeDate) return [];
-    const days = chartTimeFrame === '7d' ? 7 : chartTimeFrame === '14d' ? 14 : chartTimeFrame === '30d' ? 30 : 14;
-    const dates: string[] = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      dates.push(toDateStr(d));
+    let dates: string[] = [];
+    if (chartTimeFrame === 'custom' && customStartDate && customEndDate) {
+      const start = new Date(customStartDate + 'T00:00:00');
+      const end = new Date(customEndDate + 'T00:00:00');
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        dates.push(toDateStr(new Date(d)));
+      }
+    } else {
+      const days = chartTimeFrame === '7d' ? 7 : chartTimeFrame === '14d' ? 14 : chartTimeFrame === '30d' ? 30 : 14;
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        dates.push(toDateStr(d));
+      }
     }
     if (isDemoMode) {
       const all = safeLocalGetJSON('trackfit_demo_foods', []);
@@ -972,7 +1077,7 @@ export default function TrackFitApp() {
         target: goals.calories
       };
     });
-  }, [isDemoMode, activeDate, dailyTotals, goals, chartTimeFrame, consistencyData]);
+  }, [isDemoMode, activeDate, dailyTotals, goals, chartTimeFrame, consistencyData, customStartDate, customEndDate]);
 
   const isWslError = dbError.toLowerCase().includes('econnrefused') && (dbError.includes('::1') || dbError.includes('localhost'));
 
@@ -1075,13 +1180,24 @@ export default function TrackFitApp() {
 
   // ─── Time Frame Selector ──────────────────────────────────────────────────────
   const TimeFrameSelector = () => (
-    <div className="flex gap-1 bg-zinc-900/80 rounded-lg p-0.5 border border-zinc-800/50">
-      {(['7d', '14d', '30d', 'all'] as TimeFrame[]).map(tf => (
-        <button key={tf} onClick={() => setChartTimeFrame(tf)}
-          className={`px-2.5 py-1 rounded-md text-sm lg:text-base font-semibold transition-all cursor-pointer ${chartTimeFrame === tf ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-          {tf === 'all' ? 'All' : tf.toUpperCase()}
-        </button>
-      ))}
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex gap-1 bg-zinc-900/80 rounded-lg p-0.5 border border-zinc-800/50">
+        {(['7d', '14d', '30d', 'all', 'custom'] as TimeFrame[]).map(tf => (
+          <button key={tf} onClick={() => setChartTimeFrame(tf)}
+            className={`px-2.5 py-1 rounded-md text-sm lg:text-base font-semibold transition-all cursor-pointer ${chartTimeFrame === tf ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+            {tf === 'all' ? 'All' : tf === 'custom' ? 'Custom' : tf.toUpperCase()}
+          </button>
+        ))}
+      </div>
+      {chartTimeFrame === 'custom' && (
+        <div className="flex items-center gap-2 animate-fade-in-up">
+          <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)}
+            className="bg-zinc-900/80 border border-zinc-700/50 rounded-lg px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
+          <span className="text-zinc-600 text-xs">→</span>
+          <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)}
+            className="bg-zinc-900/80 border border-zinc-700/50 rounded-lg px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
+        </div>
+      )}
     </div>
   );
 
@@ -1735,12 +1851,12 @@ export default function TrackFitApp() {
                 {/* Sub-tabs */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                   {([
+                    { id: 'body' as InsightSubTab, icon: Activity, label: 'Body' },
                     { id: 'calories' as InsightSubTab, icon: Flame, label: 'Calories' },
                     { id: 'weight' as InsightSubTab, icon: Scale, label: 'Weight' },
                     { id: 'water' as InsightSubTab, icon: Droplets, label: 'Water' },
-                    { id: 'workouts' as InsightSubTab, icon: Dumbbell, label: 'Workouts' },
                     { id: 'calendar' as InsightSubTab, icon: CalendarIcon, label: 'Consistency' },
-                    { id: 'body' as InsightSubTab, icon: Activity, label: 'Body' },
+                    { id: 'workouts' as InsightSubTab, icon: Dumbbell, label: 'Workouts' },
                   ]).map(({ id, icon: Icon, label }) => (
                     <button
                       key={id}
@@ -1766,104 +1882,159 @@ export default function TrackFitApp() {
                 {/* ── Calories ── */}
                 {insightSubTab === 'calories' && (
                   <div className="space-y-4">
-                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
-                      <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-2">
-                        <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><TrendingUp className="h-4 w-4 text-indigo-400" />Calorie Trend</div>
-                        <CardDescription className="text-xs lg:text-sm text-zinc-500">Daily intake vs {goals.calories} kcal target</CardDescription>
-                      </CardHeader>
-                      <CardContent className="px-2 sm:px-3 pb-4">
-                        {historyData.length < 2 ? <div className="text-center text-zinc-600 text-xs lg:text-sm py-8 italic">Not enough data for chart.</div> : (
-                          <svg viewBox="-15 -10 370 155" className="w-full mt-2">
-                            {/* Grid */}
-                            <line x1={CP} y1={CH - CP} x2={CW - CP} y2={CH - CP} className="stroke-[#1b1b26]" strokeWidth="1" />
-                            {[0.25, 0.5, 0.75, 1].map(p => {
-                              const y = CH - CP - p * (CH - CP * 2);
-                              return <g key={p}><line x1={CP} y1={y} x2={CW - CP} y2={y} className="stroke-[#1b1b26]/40" strokeWidth="0.5" strokeDasharray="3,3" /><text x={CP - 3} y={y + 3} className="fill-zinc-600 text-[7px]" textAnchor="end">{Math.round(maxCal * p)}</text></g>;
-                            })}
-                            {/* Target line */}
-                            <line x1={CP} y1={targetY} x2={CW - CP} y2={targetY} className="stroke-red-500/50" strokeWidth="1.2" strokeDasharray="4,4" />
-                            <text x={CW - CP - 3} y={targetY - 4} className="fill-red-400/80 text-[7px]" textAnchor="end">Target</text>
-                            {/* Gradient area */}
-                            <defs>
-                              <linearGradient id="calGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
-                                <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-                              </linearGradient>
-                            </defs>
-                            {calPoints && <polygon fill="url(#calGrad)" points={`${CP},${CH - CP} ${calPoints} ${CW - CP},${CH - CP}`} />}
-                            {calPoints && <polyline fill="none" className="stroke-indigo-500" strokeWidth="2" points={calPoints} strokeLinecap="round" strokeLinejoin="round" />}
-                            {historyData.map((d, i) => {
-                              const x = CP + (i * (CW - CP * 2)) / (historyData.length - 1);
-                              const y = CH - CP - (d.calories / maxCal) * (CH - CP * 2);
-                              const isActive = d.date === activeDate;
-                              const showLabel = i === 0 || i === historyData.length - 1 || i === Math.floor(historyData.length / 2) || isActive;
-                              return (
-                                <g key={i}>
-                                  <circle cx={x} cy={y} r={isActive ? 4 : 2.5} className={isActive ? 'fill-emerald-400 stroke-[#0d0d12] stroke-2' : 'fill-indigo-400'} />
-                                  {showLabel && <text x={x} y={CH - 4} className="fill-zinc-500 text-[7px]" textAnchor="middle">{d.label.split(',')[0]}</text>}
-                                  {isActive && <text x={x} y={y - 8} className="fill-emerald-400 text-[8px] font-bold" textAnchor="middle">{d.calories}</text>}
-                                </g>
-                              );
-                            })}
-                          </svg>
-                        )}
-                      </CardContent>
-                    </Card>
-                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                      <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-2 sm:p-3 text-center">
-                        <span className="text-zinc-500 text-[10px] lg:text-xs uppercase font-bold block">Avg</span>
-                        <h4 className="text-sm font-extrabold text-white mt-0.5">{historyData.length > 0 ? Math.round(historyData.reduce((s, d) => s + d.calories, 0) / historyData.length) : 0} kcal</h4>
+                    {/* Summary cards */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
+                        <span className="text-zinc-500 text-[11px] uppercase font-bold block">Avg</span>
+                        <h4 className="text-base font-bold text-white mt-0.5">{historyData.length > 0 ? Math.round(historyData.reduce((s, d) => s + d.calories, 0) / historyData.length) : 0}</h4>
+                        <span className="text-[10px] text-zinc-600">kcal</span>
                       </Card>
-                      <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-2 sm:p-3 text-center">
-                        <span className="text-zinc-500 text-[10px] lg:text-xs uppercase font-bold block">Peak</span>
-                        <h4 className="text-sm font-extrabold text-white mt-0.5">{historyData.length > 0 ? Math.max(...historyData.map(d => d.calories)) : 0} kcal</h4>
+                      <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
+                        <span className="text-zinc-500 text-[11px] uppercase font-bold block">Peak</span>
+                        <h4 className="text-base font-bold text-white mt-0.5">{historyData.length > 0 ? Math.max(...historyData.map(d => d.calories)) : 0}</h4>
+                        <span className="text-[10px] text-zinc-600">kcal</span>
                       </Card>
-                      <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-2 sm:p-3 text-center">
-                        <span className="text-zinc-500 text-[10px] lg:text-xs uppercase font-bold block">Target</span>
-                        <h4 className="text-sm font-extrabold text-white mt-0.5">{goals.calories} kcal</h4>
+                      <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
+                        <span className="text-zinc-500 text-[11px] uppercase font-bold block">Target</span>
+                        <h4 className="text-base font-bold text-indigo-400 mt-0.5">{goals.calories}</h4>
+                        <span className="text-[10px] text-zinc-600">kcal</span>
                       </Card>
                     </div>
+
+                    {/* Line chart */}
+                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
+                      <CardHeader className="py-3 px-4 pb-1">
+                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300"><Flame className="h-4 w-4 text-orange-400" />Daily Intake</div>
+                        <CardDescription className="text-xs text-zinc-500">vs {goals.calories} kcal target</CardDescription>
+                      </CardHeader>
+                      <CardContent className="px-3 pb-4">
+                        {historyData.length < 2 ? <div className="text-center text-zinc-600 text-xs py-8 italic">Not enough data for chart.</div> : (() => {
+                          const svgW = 340, svgH = 140;
+                          const padL = 36, padR = 8, padT = 10, padB = 20;
+                          const chartW = svgW - padL - padR;
+                          const chartH = svgH - padT - padB;
+                          const maxVal = Math.max(...historyData.map(d => Math.max(d.calories, d.target)), 1) * 1.12;
+                          const pts = historyData.map((d, i) => {
+                            const x = padL + (i * chartW) / (historyData.length - 1);
+                            const y = padT + chartH - (d.calories / maxVal) * chartH;
+                            return { x, y, d };
+                          });
+                          const targetY = padT + chartH - (goals.calories / maxVal) * chartH;
+                          const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+                          const areaPath = `${linePath} L${pts[pts.length - 1].x},${padT + chartH} L${pts[0].x},${padT + chartH} Z`;
+                          const labelEvery = historyData.length <= 7 ? 1 : historyData.length <= 14 ? 2 : historyData.length <= 30 ? 5 : 7;
+                          return (
+                            <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full">
+                              <defs>
+                                <linearGradient id="calGrad" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#6366f1" stopOpacity="0.18" />
+                                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                                </linearGradient>
+                              </defs>
+                              {/* Grid */}
+                              {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
+                                const y = padT + chartH - p * chartH;
+                                const v = Math.round(maxVal * p);
+                                return (
+                                  <g key={i}>
+                                    <line x1={padL} y1={y} x2={svgW - padR} y2={y} className="stroke-[#1b1b26]/40" strokeWidth="0.5" strokeDasharray={i === 0 ? '0' : '3,3'} />
+                                    <text x={padL - 3} y={y + 3} className="fill-zinc-600" style={{ fontSize: '5px' }} textAnchor="end">{v}</text>
+                                  </g>
+                                );
+                              })}
+                              {/* Target line */}
+                              <line x1={padL} y1={targetY} x2={svgW - padR} y2={targetY} className="stroke-red-500/35" strokeWidth="1" strokeDasharray="4,3" />
+                              {/* Area + Line */}
+                              <path d={areaPath} fill="url(#calGrad)" />
+                              <path d={linePath} fill="none" className="stroke-indigo-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              {/* Points */}
+                              {pts.map((p, i) => {
+                                const isToday = p.d.date === activeDate;
+                                const showLabel = i === 0 || i === historyData.length - 1 || i % labelEvery === 0 || isToday;
+                                const dayLabel = p.d.label.split(',')[0];
+                                return (
+                                  <g key={i}>
+                                    <circle cx={p.x} cy={p.y} r={isToday ? 3.5 : 2} className={isToday ? 'fill-emerald-400 stroke-[#0d0d12] stroke-2' : 'fill-indigo-400/80'} />
+                                    {showLabel && <text x={p.x} y={svgH - 4} className="fill-zinc-600" style={{ fontSize: '5px' }} textAnchor="middle">{dayLabel}</text>}
+                                    {isToday && <text x={p.x} y={p.y - 7} className="fill-emerald-400" style={{ fontSize: '6px' }} textAnchor="middle" fontWeight="600">{p.d.calories}</text>}
+                                  </g>
+                                );
+                              })}
+                            </svg>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
 
                 {/* ── Weight ── */}
                 {insightSubTab === 'weight' && (
                   <div className="space-y-4">
-                    <Card className="bg-[#100e18] border-[#201a30]/80 rounded-2xl">
-                      <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-3"><div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><Scale className="h-4 w-4 text-violet-400" />Today's Weight</div></CardHeader>
-                      <CardContent className="px-3 sm:px-5 pb-5">
+                    {/* Today's weight card */}
+                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl">
+                      <CardHeader className="py-3 px-4 pb-2">
+                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300"><Scale className="h-4 w-4 text-violet-400" />Today's Entry</div>
+                      </CardHeader>
+                      <CardContent className="px-4 pb-4">
                         {weightLog ? (
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <div className="text-2xl sm:text-3xl font-extrabold text-violet-300 break-words">
-                                {displayWeight(weightLog.weight)} <span className="text-sm text-zinc-400 font-normal">{weightUnit}</span>
+                              <div className="text-2xl font-bold text-violet-300">
+                                {displayWeight(weightLog.weight)} <span className="text-sm text-zinc-500 font-normal">{weightUnit}</span>
                               </div>
                               {weightLog.bodyFat !== undefined && weightLog.bodyFat !== null && (
-                                <div className="text-xs text-zinc-400 font-normal mt-1">Body Fat: {weightLog.bodyFat}%</div>
+                                <div className="text-xs text-zinc-500 mt-1">Body Fat: {weightLog.bodyFat}%</div>
                               )}
-                              {getFilteredWeightHistory.length >= 2 && (() => { const prev = getFilteredWeightHistory[getFilteredWeightHistory.length - 2]?.weight; if (!prev) return null; const d = weightLog.weight - prev; return <div className={`text-xs font-semibold mt-1 ${d > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>{d > 0 ? '▲' : '▼'} {Math.abs(weightUnit === 'lbs' ? d * 2.20462 : d).toFixed(1)} {weightUnit} vs prev entry</div> })()}
+                              {getFilteredWeightHistory.length >= 2 && (() => { const prev = getFilteredWeightHistory[getFilteredWeightHistory.length - 2]?.weight; if (!prev) return null; const d = weightLog.weight - prev; const absD = Math.abs(weightUnit === 'lbs' ? d * 2.20462 : d); return <div className={`text-xs font-semibold mt-1 ${d > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>{d > 0 ? '▲' : '▼'} {absD.toFixed(1)} {weightUnit} vs prev</div> })()}
                             </div>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400 shrink-0" onClick={() => { setWeightLog(null); setWeightFormValue(0); setBodyFatFormValue(''); }}><X className="h-4 w-4" /></Button>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-3">
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                              <Input type="number" step="0.1" placeholder={`Weight in ${weightUnit}`} value={weightFormValue || ''} onChange={e => setWeightFormValue(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-sm h-10 flex-1" />
-                              <Input type="number" step="0.1" placeholder="Fat % (optional)" value={bodyFatFormValue || ''} onChange={e => setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-sm h-10 sm:w-32 text-center" />
+                            <div className="flex gap-2">
+                              <Input type="number" step="0.1" placeholder={`Weight (${weightUnit})`} value={weightFormValue || ''} onChange={e => setWeightFormValue(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-sm h-9 flex-1" />
+                              <Input type="number" step="0.1" placeholder="Fat %" value={bodyFatFormValue || ''} onChange={e => setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-sm h-9 w-24 text-center" />
                             </div>
-                            <Button className="bg-violet-600 hover:bg-violet-500 text-white h-10 w-full" onClick={handleLogWeight}>Log weight entry</Button>
+                            <Button className="bg-violet-600 hover:bg-violet-500 text-white h-9 w-full text-sm" onClick={handleLogWeight}>Log Entry</Button>
                           </div>
                         )}
                       </CardContent>
                     </Card>
 
-                    {/* Weight Trend Chart */}
+                    {/* Stats row */}
+                    {getFilteredWeightHistory.length >= 2 && (() => {
+                      const current = weightUnit === 'lbs' ? (getFilteredWeightHistory[getFilteredWeightHistory.length - 1]?.weight || 0) * 2.20462 : getFilteredWeightHistory[getFilteredWeightHistory.length - 1]?.weight || 0;
+                      const minW = weightUnit === 'lbs' ? Math.min(...getFilteredWeightHistory.map(w => w.weight)) * 2.20462 : Math.min(...getFilteredWeightHistory.map(w => w.weight));
+                      const maxW = weightUnit === 'lbs' ? Math.max(...getFilteredWeightHistory.map(w => w.weight)) * 2.20462 : Math.max(...getFilteredWeightHistory.map(w => w.weight));
+                      return (
+                        <div className="grid grid-cols-3 gap-2">
+                          <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
+                            <span className="text-zinc-500 text-[11px] uppercase font-bold block">Current</span>
+                            <h4 className="text-base font-bold text-white mt-0.5">{current.toFixed(1)}</h4>
+                            <span className="text-[10px] text-zinc-600">{weightUnit}</span>
+                          </Card>
+                          <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
+                            <span className="text-zinc-500 text-[11px] uppercase font-bold block">Low</span>
+                            <h4 className="text-base font-bold text-emerald-400 mt-0.5">{minW.toFixed(1)}</h4>
+                            <span className="text-[10px] text-zinc-600">{weightUnit}</span>
+                          </Card>
+                          <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
+                            <span className="text-zinc-500 text-[11px] uppercase font-bold block">High</span>
+                            <h4 className="text-base font-bold text-orange-400 mt-0.5">{maxW.toFixed(1)}</h4>
+                            <span className="text-[10px] text-zinc-600">{weightUnit}</span>
+                          </Card>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Trend chart */}
                     <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
-                      <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-2">
-                        <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><TrendingUp className="h-4 w-4 text-violet-400" />Weight Trend</div>
-                        <CardDescription className="text-xs lg:text-sm text-zinc-500">{getFilteredWeightHistory.length} entries · in {weightUnit}</CardDescription>
+                      <CardHeader className="py-3 px-4 pb-1">
+                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300"><TrendingUp className="h-4 w-4 text-violet-400" />Trend</div>
+                        <CardDescription className="text-xs text-zinc-500">{getFilteredWeightHistory.length} entries · {weightUnit}</CardDescription>
                       </CardHeader>
-                      <CardContent className="px-2 sm:px-3 pb-4">
+                      <CardContent className="px-3 pb-4">
                         {getFilteredWeightHistory.length < 2 ? (
                           <div className="text-center text-zinc-600 text-xs py-8 italic">Log weight on multiple days to see the trend.</div>
                         ) : (() => {
@@ -1872,38 +2043,43 @@ export default function TrackFitApp() {
                           const minV = Math.min(...vals);
                           const maxV = Math.max(...vals);
                           const range = maxV - minV || 1;
-                          const padH = 35, padV = 20;
-                          const svgW = 340, svgH = 150;
+                          const svgW = 340, svgH = 140;
+                          const padL = 40, padR = 10, padT = 16, padB = 20;
+                          const chartW = svgW - padL - padR;
+                          const chartH = svgH - padT - padB;
                           const pts = data.map((w, i) => {
-                            const x = padH + (i * (svgW - padH * 2)) / (data.length - 1);
+                            const x = padL + (i * chartW) / (data.length - 1);
                             const v = weightUnit === 'lbs' ? w.weight * 2.20462 : w.weight;
-                            const y = svgH - padV - ((v - minV) / range) * (svgH - padV * 2);
+                            const y = padT + chartH - ((v - minV) / range) * chartH;
                             return { x, y, v, date: w.date };
                           });
-                          const polyPts = pts.map(p => `${p.x},${p.y}`).join(' ');
-                          // Label intervals: show every Nth label depending on count
+                          const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+                          const areaPath = `${linePath} L${pts[pts.length - 1].x},${padT + chartH} L${pts[0].x},${padT + chartH} Z`;
                           const labelEvery = data.length <= 7 ? 1 : data.length <= 14 ? 2 : data.length <= 30 ? 5 : 7;
                           return (
-                            <svg viewBox="-15 -10 370 175" className="w-full mt-1">
+                            <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full">
                               <defs>
                                 <linearGradient id="wtGrad" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
+                                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.18" />
                                   <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
                                 </linearGradient>
                               </defs>
-                              {/* Grid lines with weight labels on Y */}
-                              {[0, 0.25, 0.5, 0.75, 1].map(p => {
-                                const y = svgH - padV - p * (svgH - padV * 2);
+                              {/* Grid */}
+                              {[0, 0.25, 0.5, 0.75, 1].map((_, i) => {
+                                const p = i / 4;
+                                const y = padT + chartH - p * chartH;
                                 const v = (minV + p * range).toFixed(1);
-                                return <g key={p}><line x1={padH} y1={y} x2={svgW - padH * 0.5} y2={y} className="stroke-[#1b1b26]/50" strokeWidth="0.5" strokeDasharray="3,3" /><text x={padH - 4} y={y + 3} className="fill-zinc-600 text-[7px]" textAnchor="end">{v}</text></g>;
+                                return (
+                                  <g key={i}>
+                                    <line x1={padL} y1={y} x2={svgW - padR} y2={y} className="stroke-[#1b1b26]/40" strokeWidth="0.5" strokeDasharray={i === 0 ? '0' : '3,3'} />
+                                    <text x={padL - 4} y={y + 3} className="fill-zinc-600" style={{ fontSize: '5px' }} textAnchor="end">{v}</text>
+                                  </g>
+                                );
                               })}
-                              {/* Baseline */}
-                              <line x1={padH} y1={svgH - padV} x2={svgW - padH * 0.5} y2={svgH - padV} className="stroke-[#1b1b26]" strokeWidth="1" />
-                              {/* Fill area */}
-                              <polygon fill="url(#wtGrad)" points={`${pts[0].x},${svgH - padV} ${polyPts} ${pts[pts.length - 1].x},${svgH - padV}`} />
-                              {/* Line */}
-                              <polyline fill="none" className="stroke-violet-500" strokeWidth="2" points={polyPts} strokeLinecap="round" strokeLinejoin="round" />
-                              {/* Points + Date labels */}
+                              {/* Area + Line */}
+                              <path d={areaPath} fill="url(#wtGrad)" />
+                              <path d={linePath} fill="none" className="stroke-violet-500" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              {/* Points */}
                               {pts.map((p, i) => {
                                 const isToday = p.date === activeDate;
                                 const showDate = i === 0 || i === pts.length - 1 || i % labelEvery === 0 || isToday;
@@ -1911,12 +2087,10 @@ export default function TrackFitApp() {
                                 const shortDate = `${d.getDate()}/${d.getMonth() + 1}`;
                                 return (
                                   <g key={i}>
-                                    <circle cx={p.x} cy={p.y} r={isToday ? 4 : 2.5} className={isToday ? 'fill-emerald-400 stroke-[#0d0d12] stroke-2' : 'fill-violet-400'} />
-                                    {showDate && (
-                                      <text x={p.x} y={svgH - 5} className="fill-zinc-500 text-[7px]" textAnchor="middle">{shortDate}</text>
-                                    )}
+                                    <circle cx={p.x} cy={p.y} r={isToday ? 3.5 : 2} className={isToday ? 'fill-emerald-400 stroke-[#0d0d12] stroke-2' : 'fill-violet-400/80'} />
+                                    {showDate && <text x={p.x} y={svgH - 4} className="fill-zinc-600" style={{ fontSize: '5px' }} textAnchor="middle">{shortDate}</text>}
                                     {(isToday || i === 0 || i === pts.length - 1) && (
-                                      <text x={p.x} y={p.y - 7} className={`text-[7px] font-bold ${isToday ? 'fill-emerald-400' : 'fill-violet-400'}`} textAnchor="middle">{p.v.toFixed(1)}</text>
+                                      <text x={p.x} y={p.y - 7} className={isToday ? 'fill-emerald-400' : 'fill-violet-400/70'} style={{ fontSize: '6px' }} textAnchor="middle" fontWeight="600">{p.v.toFixed(1)}</text>
                                     )}
                                   </g>
                                 );
@@ -1926,21 +2100,6 @@ export default function TrackFitApp() {
                         })()}
                       </CardContent>
                     </Card>
-
-                    {getFilteredWeightHistory.length >= 2 && (
-                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                        {[
-                          { l: 'Current', v: weightUnit === 'lbs' ? (getFilteredWeightHistory[getFilteredWeightHistory.length - 1]?.weight || 0) * 2.20462 : getFilteredWeightHistory[getFilteredWeightHistory.length - 1]?.weight || 0 },
-                          { l: 'Min', v: weightUnit === 'lbs' ? Math.min(...getFilteredWeightHistory.map(w => w.weight)) * 2.20462 : Math.min(...getFilteredWeightHistory.map(w => w.weight)) },
-                          { l: 'Max', v: weightUnit === 'lbs' ? Math.max(...getFilteredWeightHistory.map(w => w.weight)) * 2.20462 : Math.max(...getFilteredWeightHistory.map(w => w.weight)) },
-                        ].map(s => (
-                          <Card key={s.l} className="bg-[#111116] border-[#222231]/80 rounded-xl p-2 sm:p-3 text-center">
-                            <span className="text-zinc-500 text-[10px] lg:text-xs uppercase font-bold block">{s.l}</span>
-                            <h4 className="text-sm font-extrabold text-white mt-0.5">{s.v.toFixed(1)}<span className="text-[10px] lg:text-xs text-zinc-500 font-normal ml-0.5">{weightUnit}</span></h4>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -2068,54 +2227,148 @@ export default function TrackFitApp() {
                 {/* ── Workouts ── */}
                 {insightSubTab === 'workouts' && (
                   <div className="space-y-4">
-                    <Card className="bg-[#0e1218] border-[#1a2530]/80 rounded-2xl">
-                      <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-3">
-                        <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300">
+                    {/* Timer card */}
+                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl">
+                      <CardHeader className="py-3 px-4 pb-2">
+                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300">
                           <Dumbbell className="h-4 w-4 text-emerald-400" />
-                          Workout Session Summary
+                          Workout Timer
                         </div>
-                        <CardDescription className="text-xs lg:text-sm text-zinc-500">Log workout details for {activeDate}</CardDescription>
+                        <CardDescription className="text-xs text-zinc-500">{activeDate}</CardDescription>
                       </CardHeader>
-                      <CardContent className="px-3 sm:px-5 pb-5 space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs lg:text-sm text-zinc-500">Duration (minutes)</Label>
-                            <Input type="number" placeholder="e.g. 45" value={sessionDuration} onChange={e => setSessionDuration(e.target.value === '' ? '' : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" />
+                      <CardContent className="px-4 pb-4 space-y-4">
+                        {/* Timer display */}
+                        <div className="flex flex-col items-center gap-3 py-4">
+                          <div className={`text-4xl font-mono font-bold tracking-wider ${workoutTimerRunning ? 'text-emerald-400' : 'text-zinc-300'}`}>
+                            {String(Math.floor(workoutTimerSeconds / 3600)).padStart(2, '0')}:{String(Math.floor((workoutTimerSeconds % 3600) / 60)).padStart(2, '0')}:{String(workoutTimerSeconds % 60).padStart(2, '0')}
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs lg:text-sm text-zinc-500">Energy Burned (kcal)</Label>
-                            <Input type="number" placeholder="e.g. 350" value={sessionEnergy || ''} onChange={e => setSessionEnergy(e.target.value === '' ? 0 : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" />
-                          </div>
+                          {workoutTimerRunning && workoutTimerStart && (
+                            <span className="text-[10px] text-zinc-500">Started at {workoutTimerStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          )}
                         </div>
+
+                        {/* Start/Pause + Reset buttons */}
+                        <div className="flex gap-2">
+                          {!workoutTimerRunning ? (
+                            <button
+                              onClick={() => { setWorkoutTimerRunning(true); setWorkoutTimerStart(new Date()); }}
+                              className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all btn-press"
+                            >
+                              Start Workout
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setWorkoutTimerRunning(false)}
+                              className="flex-1 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition-all btn-press"
+                            >
+                              Pause
+                            </button>
+                          )}
+                          {workoutTimerSeconds > 0 && (
+                            <button
+                              onClick={() => { setWorkoutTimerRunning(false); setWorkoutTimerSeconds(0); setWorkoutTimerStart(null); setSessionNotes(''); }}
+                              className="px-4 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-semibold text-sm transition-all btn-press"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Notes (optional) */}
                         <div className="space-y-1">
-                          <Label className="text-xs lg:text-sm text-zinc-500">Notes / Highlights</Label>
-                          <Input type="text" placeholder="e.g. Hit new PR on squats, felt high energy" value={sessionNotes} onChange={e => setSessionNotes(e.target.value)} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" />
+                          <label className="text-[10px] text-zinc-500 uppercase font-bold">Notes (optional)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Hit new PR on squats"
+                            value={sessionNotes}
+                            onChange={e => setSessionNotes(e.target.value)}
+                            className="w-full bg-[#181822] border border-[#242436] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                          />
                         </div>
-                        <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-9 rounded-lg mt-1" onClick={handleSaveWorkoutSession} disabled={isSavingSession}>
-                          {isSavingSession ? 'Saving...' : 'Save Session Summary'}
-                        </Button>
+
+                        {/* Save button */}
+                        {workoutTimerSeconds > 0 && (
+                          <button
+                            className="w-full py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-700/40 text-emerald-400 font-semibold text-xs transition-all btn-press disabled:opacity-40"
+                            onClick={handleSaveWorkoutSession}
+                            disabled={isSavingSession}
+                          >
+                            {isSavingSession ? 'Saving...' : `Save Session (${Math.round(workoutTimerSeconds / 60)} min)`}
+                          </button>
+                        )}
+
+                        {/* Manual logging toggle */}
+                        <div className="pt-2 border-t border-[#222231]/50">
+                          <button
+                            onClick={() => setShowManualForm(!showManualForm)}
+                            className="w-full py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                          >
+                            {showManualForm ? 'Hide manual entry' : '+ Log session manually instead'}
+                          </button>
+                        </div>
+
+                        {/* Manual form */}
+                        {showManualForm && (
+                          <div className="space-y-3 animate-fade-in-up">
+                            <div className="space-y-1">
+                              <label className="text-[10px] text-zinc-500 uppercase font-bold">Duration (minutes)</label>
+                              <input
+                                type="number"
+                                placeholder="e.g. 45"
+                                value={manualDuration || ''}
+                                onChange={e => setManualDuration(e.target.value === '' ? '' : Number(e.target.value))}
+                                className="w-full bg-[#181822] border border-[#242436] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] text-zinc-500 uppercase font-bold">Notes (optional)</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Chest day, felt strong"
+                                value={manualNotes}
+                                onChange={e => setManualNotes(e.target.value)}
+                                className="w-full bg-[#181822] border border-[#242436] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                              />
+                            </div>
+                            <button
+                              className="w-full py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-700/40 text-emerald-400 font-semibold text-xs transition-all btn-press disabled:opacity-40"
+                              onClick={handleSaveManualSession}
+                              disabled={isSavingSession || manualDuration === '' || Number(manualDuration) <= 0}
+                            >
+                              {isSavingSession ? 'Saving...' : 'Save Manual Entry'}
+                            </button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
 
-                    {/* Workout Sessions History List */}
+                    {/* Session history */}
                     <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
-                      <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-2">
-                        <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><TrendingUp className="h-4 w-4 text-emerald-400" />Session Logs</div>
-                        <CardDescription className="text-xs lg:text-sm text-zinc-500">{sessionLogsHistory.length} sessions logged this month</CardDescription>
+                      <CardHeader className="py-3 px-4 pb-2">
+                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300"><TrendingUp className="h-4 w-4 text-emerald-400" />Session Logs</div>
+                        <CardDescription className="text-xs text-zinc-500">{sessionLogsHistory.length} sessions this month</CardDescription>
                       </CardHeader>
-                      <CardContent className="px-3 sm:px-4 pb-4">
+                      <CardContent className="px-3 pb-4">
                         {sessionLogsHistory.length === 0 ? (
-                          <div className="text-center text-zinc-600 text-xs lg:text-sm py-8 italic">No workout sessions logged yet.</div>
+                          <div className="text-center text-zinc-600 text-xs py-8 italic">No workout sessions logged yet.</div>
                         ) : (
                           <div className="space-y-2 max-h-60 overflow-y-auto divide-y divide-[#1e1e2d] pr-1">
                             {sessionLogsHistory.map((s: any, i: number) => (
-                              <div key={s.id || i} className="pt-2.5 first:pt-0 flex flex-col gap-1 text-sm lg:text-base">
+                              <div key={s.id || i} className="pt-2.5 first:pt-0 flex flex-col gap-1 text-sm">
                                 <div className="flex justify-between items-center text-zinc-300 font-medium">
                                   <span>{new Date(s.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-                                  <span className="text-emerald-400 font-bold">{s.duration}m · {s.energy} kcal</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-emerald-400 font-bold">{s.duration} min</span>
+                                    <button
+                                      onClick={() => handleDeleteSession(s.id)}
+                                      className="text-zinc-600 hover:text-red-400 transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
                                 </div>
                                 {s.notes && (
-                                  <div className="text-zinc-500 text-xs lg:text-sm italic bg-[#151520] p-1.5 rounded-md border border-[#20202d]/60">{s.notes}</div>
+                                  <div className="text-zinc-500 text-xs italic bg-[#151520] p-1.5 rounded-md border border-[#20202d]/60">{s.notes}</div>
                                 )}
                               </div>
                             ))}
@@ -2125,6 +2378,30 @@ export default function TrackFitApp() {
                     </Card>
                   </div>
                 )}
+
+                {/* Delete session confirmation dialog */}
+                <Dialog open={deleteSessionId !== null} onOpenChange={open => { if (!open) setDeleteSessionId(null); }}>
+                  <DialogContent className="bg-[#121219] border-[#222233] text-zinc-100 max-w-sm rounded-2xl p-5">
+                    <DialogHeader>
+                      <DialogTitle>Delete Session?</DialogTitle>
+                      <DialogDescription className="text-xs text-zinc-500">This action cannot be undone. The workout session will be permanently removed.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="pt-3 flex gap-2">
+                      <button
+                        onClick={() => setDeleteSessionId(null)}
+                        className="flex-1 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-sm transition-all btn-press"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={confirmDeleteSession}
+                        className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-sm transition-all btn-press"
+                      >
+                        Delete
+                      </button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
 
                 {/* ── Consistency Calendar ── */}
                 {insightSubTab === 'calendar' && (() => {
@@ -2229,7 +2506,7 @@ export default function TrackFitApp() {
                         <CardDescription className="text-xs lg:text-sm text-zinc-500">See which muscle groups you've been training most</CardDescription>
                       </CardHeader>
                       <CardContent className="px-3 sm:px-5 pb-5">
-                        <BodyHeatmap workoutLogs={allWorkoutSetsHistory} />
+                        <BodyHeatmap workoutLogs={filteredWorkoutLogsForHeatmap} />
                       </CardContent>
                     </Card>
                   </div>
