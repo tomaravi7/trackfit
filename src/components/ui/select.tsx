@@ -64,13 +64,13 @@ function SelectTrigger({ className, children, ...props }: SelectTriggerProps) {
       type="button"
       onClick={() => setOpen?.(!open)}
       className={cn(
-        "flex h-9 w-full items-center justify-between rounded-lg border border-zinc-800 bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 text-left text-zinc-200 cursor-pointer",
+        "flex h-9 w-full items-center justify-between rounded-lg border border-zinc-800 bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-200 text-gray-800 cursor-pointer",
         className
       )}
       {...props}
     >
       {children}
-      <ChevronDownIcon className="h-4 w-4 opacity-50 text-zinc-400" />
+      <ChevronDownIcon className="h-4 w-4 opacity-50 dark:text-zinc-400 text-gray-500" />
     </button>
   )
 }
@@ -107,7 +107,7 @@ function SelectContent({ className, children, ...props }: SelectContentProps) {
     <div
       ref={containerRef}
       className={cn(
-        "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 text-zinc-100 shadow-xl animate-in fade-in-80 duration-100 mt-1 max-h-60 w-full",
+        "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-zinc-800 bg-zinc-950 dark:text-zinc-100 text-gray-900 shadow-xl animate-in fade-in-80 duration-100 mt-1 max-h-60 w-full",
         className
       )}
       {...props}
@@ -135,8 +135,8 @@ function SelectItem({ className, value, children, ...props }: SelectItemProps) {
     <div
       onClick={() => onValueChange?.(value)}
       className={cn(
-        "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-zinc-800 hover:text-zinc-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-zinc-300 cursor-pointer",
-        isActive && "bg-zinc-800 text-zinc-100 font-medium",
+        "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none dark:hover:bg-zinc-800 hover:bg-gray-200 dark:hover:text-zinc-100 hover:text-gray-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:text-zinc-300 text-gray-700 cursor-pointer",
+        isActive && "dark:bg-zinc-800 bg-gray-200 dark:text-zinc-100 text-gray-900 font-medium",
         className
       )}
       {...props}
@@ -144,7 +144,7 @@ function SelectItem({ className, value, children, ...props }: SelectItemProps) {
       <span className="truncate">{children}</span>
       {isActive && (
         <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-          <CheckIcon className="h-4 w-4 text-indigo-400" />
+          <CheckIcon className="h-4 w-4 dark:text-indigo-400 text-indigo-600" />
         </span>
       )}
     </div>

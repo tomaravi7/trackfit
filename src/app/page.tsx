@@ -1430,8 +1430,8 @@ export default function TrackFitApp() {
                     ) : (
                       <div className="flex flex-col gap-2 mt-1">
                         <div className="flex items-center gap-1.5">
-                          <Input type="number" step="0.1" placeholder={`Weight (${weightUnit})`} value={weightFormValue || ''} onChange={e => setWeightFormValue(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8 flex-1 text-center" />
-                          <Input type="number" step="0.1" placeholder="Fat % (opt)" value={bodyFatFormValue || ''} onChange={e => setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8 w-20 text-center" />
+                          <Input type="number" step="0.1" placeholder={`Weight (${weightUnit})`} value={weightFormValue || ''} onChange={e => setWeightFormValue(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8 flex-1 text-center" />
+                          <Input type="number" step="0.1" placeholder="Fat % (opt)" value={bodyFatFormValue || ''} onChange={e => setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8 w-20 text-center" />
                         </div>
                         <button onClick={handleLogWeight} className="text-xs lg:text-sm w-full dark:bg-violet-600/30 dark:border-violet-600/50 dark:text-violet-300 dark:hover:bg-violet-600/40 bg-violet-100 border-violet-200 text-violet-700 py-1.5 rounded-lg hover:bg-violet-200 cursor-pointer font-medium text-center">Log Weight</button>
                       </div>
@@ -1564,8 +1564,8 @@ export default function TrackFitApp() {
                       <div className="flex items-center gap-2">
                         <span className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Meal:</span>
                         <Select value={selectedRecommendationMealType} onValueChange={(v: any) => setSelectedRecommendationMealType(v)}>
-                          <SelectTrigger className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 h-7 text-xs lg:text-sm w-24"><SelectValue /></SelectTrigger>
-                          <SelectContent className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm">
+                          <SelectTrigger className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 h-7 text-xs lg:text-sm w-24 dark:text-zinc-200 text-gray-800"><SelectValue /></SelectTrigger>
+                          <SelectContent className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm">
                             <SelectItem value="Breakfast">Breakfast</SelectItem>
                             <SelectItem value="Lunch">Lunch</SelectItem>
                             <SelectItem value="Dinner">Dinner</SelectItem>
@@ -1667,13 +1667,13 @@ export default function TrackFitApp() {
                     {!isEditingFood && (
                       <div className="space-y-2 relative">
                         <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 dark:text-zinc-500 text-gray-500" />
-                          <Input type="text" placeholder="Search food..." value={foodSearchQuery} onChange={e => setFoodSearchQuery(e.target.value)} className="pl-8 dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-9" />
+                          <Input type="text" placeholder="Search food..." value={foodSearchQuery} onChange={e => setFoodSearchQuery(e.target.value)} className="pl-8 dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-9" />
                         </div>
                         {searchingFood && <div className="text-sm lg:text-base dark:text-zinc-500 text-gray-500 text-center">Searching...</div>}
                         {foodSearchResults.length > 0 && (
-                          <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto dark:bg-[#1a1a26] bg-gray-100 bg-gray-100 border dark:border-[#2d2d3f] border-gray-200 rounded-lg shadow-xl z-50 divide-y divide-[#242434]">
+                          <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto dark:bg-[#1a1a26] bg-white border dark:border-[#2d2d3f] border-gray-200 rounded-lg shadow-xl z-50 dark:divide-[#242434] divide-gray-200">
                             {foodSearchResults.map((item, i) => (
-                              <button key={i} className="w-full text-left px-3 py-2 text-sm lg:text-base hover:dark:bg-[#222233] bg-gray-100 flex items-center gap-2 dark:text-zinc-300 text-gray-700" onClick={() => handleSelectFoodSearch(item)}>
+                              <button key={i} className="w-full text-left px-3 py-2 text-sm lg:text-base dark:hover:bg-[#222233] hover:bg-gray-100 flex items-center gap-2 dark:text-zinc-300 text-gray-700" onClick={() => handleSelectFoodSearch(item)}>
                                 {item.image ? <img src={item.image} alt="" className="h-6 w-6 object-cover rounded" /> : <div className="h-6 w-6 rounded bg-zinc-800 flex items-center justify-center text-xs lg:text-sm">{item.source === 'indian-database' ? '🍛' : '🍎'}</div>}
                                 <div className="flex-1 truncate">
                                   <span className="truncate block">{item.name}</span>
@@ -1693,21 +1693,21 @@ export default function TrackFitApp() {
                     {selectedFoodItem && <div className="p-2.5 bg-indigo-950/20 border border-indigo-900/35 rounded-lg flex justify-between items-center"><span className="font-semibold dark:text-indigo-400 text-indigo-600 text-sm lg:text-base truncate">Linked: {selectedFoodItem.name}</span><Button variant="ghost" size="icon" className="h-5 w-5 dark:text-indigo-400 text-indigo-600" onClick={() => setSelectedFoodItem(null)}><X className="h-3.5 w-3.5" /></Button></div>}
                     <div className="space-y-2 border-t dark:border-[#1d1d2b] border-gray-200 pt-3">
                       <div className="flex gap-2">
-                        <div className="space-y-1 flex-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Food Name</Label><Input type="text" value={foodFormName} onChange={e => setFoodFormName(e.target.value)} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" placeholder="e.g. Banana" /></div>
-                        <div className="space-y-1 w-24"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Weight (g)</Label><Input type="number" value={foodFormQuantity || ''} onChange={e => setFoodFormQuantity(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
+                        <div className="space-y-1 flex-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Food Name</Label><Input type="text" value={foodFormName} onChange={e => setFoodFormName(e.target.value)} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" placeholder="e.g. Banana" /></div>
+                        <div className="space-y-1 w-24"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Weight (g)</Label><Input type="number" value={foodFormQuantity || ''} onChange={e => setFoodFormQuantity(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" /></div>
                       </div>
                       <div className="dark:bg-[#151520] bg-gray-50 bg-gray-50/30 p-2.5 rounded-xl border dark:border-[#212130] border-gray-200/60">
                         <span className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 block mb-1.5 uppercase font-bold tracking-wider">Macros per 100g</span>
                         <div className="grid grid-cols-5 gap-2">
                           {[{ l: 'Cal', v: foodFormCalories, s: setFoodFormCalories }, { l: 'Prot', v: foodFormProtein, s: setFoodFormProtein }, { l: 'Carb', v: foodFormCarbs, s: setFoodFormCarbs }, { l: 'Fib', v: foodFormFiber, s: setFoodFormFiber }, { l: 'Fat', v: foodFormFat, s: setFoodFormFat }].map(f => (
-                            <div key={f.l} className="space-y-0.5"><Label className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500">{f.l}</Label><Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm px-1 h-7 text-center" /></div>
+                            <div key={f.l} className="space-y-0.5"><Label className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500">{f.l}</Label><Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm px-1 h-7 text-center" /></div>
                           ))}
                         </div>
                       </div>
                       <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Meal Section</Label>
                         <Select value={foodFormMealType} onValueChange={(v: any) => setFoodFormMealType(v)}>
-                          <SelectTrigger className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 h-8 text-xs lg:text-sm"><SelectValue /></SelectTrigger>
-                          <SelectContent className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm">
+                          <SelectTrigger className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 h-8 text-xs lg:text-sm dark:text-zinc-200 text-gray-800"><SelectValue /></SelectTrigger>
+                          <SelectContent className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm">
                             <SelectItem value="Breakfast">Breakfast</SelectItem><SelectItem value="Lunch">Lunch</SelectItem><SelectItem value="Dinner">Dinner</SelectItem><SelectItem value="Snack">Snack</SelectItem>
                           </SelectContent>
                         </Select>
@@ -1769,7 +1769,7 @@ export default function TrackFitApp() {
                           <div className="space-y-2">
                             <div className="space-y-1">
                               <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Exercise Name</Label>
-                              <Input type="text" placeholder="e.g. Incline DB Press" value={customExerciseName} onChange={e => setCustomExerciseName(e.target.value)} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" />
+                              <Input type="text" placeholder="e.g. Incline DB Press" value={customExerciseName} onChange={e => setCustomExerciseName(e.target.value)} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" />
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Category</Label>
@@ -1812,12 +1812,12 @@ export default function TrackFitApp() {
                       ) : (
                         <div className="space-y-2 relative">
                           <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 dark:text-zinc-500 text-gray-500" />
-                            <Input type="text" placeholder="e.g. Bench Press, Squat..." value={exerciseSearchQuery} onChange={e => setExerciseSearchQuery(e.target.value)} className="pl-8 dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-9" />
+                            <Input type="text" placeholder="e.g. Bench Press, Squat..." value={exerciseSearchQuery} onChange={e => setExerciseSearchQuery(e.target.value)} className="pl-8 dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-9" />
                           </div>
                           {exerciseSearchResults.length > 0 && (
-                            <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto dark:bg-[#1a1a26] bg-gray-100 bg-gray-100 border dark:border-[#2d2d3f] border-gray-200 rounded-lg shadow-xl z-50 divide-y divide-[#242434]">
+                            <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto dark:bg-[#1a1a26] bg-white border dark:border-[#2d2d3f] border-gray-200 rounded-lg shadow-xl z-50 dark:divide-[#242434] divide-gray-200">
                               {exerciseSearchResults.map((ex, i) => (
-                                <button key={i} className="w-full text-left px-3.5 py-2 text-sm lg:text-base hover:dark:bg-[#222233] bg-gray-100 dark:text-zinc-300 text-gray-700" onClick={() => selectExercise(ex.name)}>
+                                <button key={i} className="w-full text-left px-3.5 py-2 text-sm lg:text-base dark:hover:bg-[#222233] hover:bg-gray-100 dark:text-zinc-300 text-gray-700" onClick={() => selectExercise(ex.name)}>
                                   <div className="font-semibold">{ex.name}</div>
                                   <div className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 mt-0.5">{ex.category} · {ex.primaryMuscles?.join(', ')}</div>
                                 </button>
@@ -1844,8 +1844,8 @@ export default function TrackFitApp() {
                           </div>
                         )}
                         <div className="grid grid-cols-2 gap-3 border-t dark:border-[#1d1d2b] border-gray-200 pt-3">
-                          <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Weight (kg)</Label><Input type="number" step="0.5" value={workoutFormWeight || ''} onChange={e => setWorkoutFormWeight(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
-                          <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Reps</Label><Input type="number" value={workoutFormReps || ''} onChange={e => setWorkoutFormReps(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
+                          <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Weight (kg)</Label><Input type="number" step="0.5" value={workoutFormWeight || ''} onChange={e => setWorkoutFormWeight(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" /></div>
+                          <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Reps</Label><Input type="number" value={workoutFormReps || ''} onChange={e => setWorkoutFormReps(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" /></div>
                         </div>
                         <Button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-9 rounded-lg" onClick={handleLogSet}>Add Set</Button>
                       </div>
@@ -2142,7 +2142,7 @@ export default function TrackFitApp() {
                             {/* Custom amount */}
                             {showCustomWater ? (
                               <div className="flex gap-1.5">
-                                <Input type="number" min={50} max={2000} step={50} value={customWaterMl || ''} onChange={e => setCustomWaterMl(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8 flex-1 text-center" />
+                                <Input type="number" min={50} max={2000} step={50} value={customWaterMl || ''} onChange={e => setCustomWaterMl(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8 flex-1 text-center" />
                                 <button onClick={() => { handleLogWater(customWaterMl); setShowCustomWater(false); }} className="bg-sky-700/40 border border-sky-700/50 dark:text-sky-300 text-sky-700 text-xs px-3 rounded-lg hover:bg-sky-700/60 cursor-pointer">+</button>
                                 <button onClick={() => setShowCustomWater(false)} className="dark:text-zinc-500 text-gray-500 text-xs px-2 cursor-pointer">✕</button>
                               </div>
@@ -2605,7 +2605,7 @@ export default function TrackFitApp() {
                     <div className="space-y-1.5">
                       <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 uppercase font-semibold tracking-wider">Daily Water Goal (ml)</Label>
                       <div className="flex gap-2">
-                        <Input type="number" value={waterGoalMl || ''} onChange={e => setWaterGoalMl(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-9 flex-1" step={250} min={500} max={6000} />
+                        <Input type="number" value={waterGoalMl || ''} onChange={e => setWaterGoalMl(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-9 flex-1" step={250} min={500} max={6000} />
                         <Button className="bg-sky-700/40 hover:bg-sky-700/60 dark:text-sky-300 text-sky-700 border border-sky-700/50 text-xs h-9" onClick={() => safeLocalSet('trackfit_water_goal', String(waterGoalMl))}><Check className="h-3.5 w-3.5" /></Button>
                       </div>
                       <div className="flex gap-1.5">
@@ -2619,10 +2619,10 @@ export default function TrackFitApp() {
                 <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
                   <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><SettingsIcon className="h-4 w-4 dark:text-indigo-400 text-indigo-600" />Nutrition Targets</div><CardDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Update your daily nutritional goals.</CardDescription></CardHeader>
                   <CardContent className="px-5 pb-5 space-y-3">
-                    <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Daily Calories (kcal)</Label><Input type="number" value={goalFormCalories || ''} onChange={e => setGoalFormCalories(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
+                    <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Daily Calories (kcal)</Label><Input type="number" value={goalFormCalories || ''} onChange={e => setGoalFormCalories(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" /></div>
                     <div className="grid grid-cols-2 gap-2">
                       {[{ l: 'Protein (g)', v: goalFormProtein, s: setGoalFormProtein }, { l: 'Carbs (g)', v: goalFormCarbs, s: setGoalFormCarbs }, { l: 'Fiber (g)', v: goalFormFiber, s: setGoalFormFiber }, { l: 'Fat (g)', v: goalFormFat, s: setGoalFormFat }].map(f => (
-                        <div key={f.l} className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">{f.l}</Label><Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
+                        <div key={f.l} className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">{f.l}</Label><Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" /></div>
                       ))}
                     </div>
                     <Button className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs h-9 rounded-lg" onClick={handleUpdateGoals}>Save Goals</Button>
