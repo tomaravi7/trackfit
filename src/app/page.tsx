@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, Sparkles, Database,
   Activity, Flame, Apple, TrendingUp, Info,
   Droplets, Scale, BarChart3, Pencil, Lock, Brain,
-  Calendar as CalendarIcon,
+  Calendar as CalendarIcon, Moon, Sun,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,6 +72,7 @@ export default function TrackFitApp() {
   const [chartTimeFrame, setChartTimeFrame] = useState<TimeFrame>('14d');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [isDark, setIsDark] = useState(true);
 
   // DB State
   const [dbConn, setDbConn] = useState('');
@@ -202,6 +203,8 @@ export default function TrackFitApp() {
       const storedUnit = safeLocalGet('trackfit_weight_unit');
       const storedWater = safeLocalGet('trackfit_water_goal');
       const storedAiKey = safeLocalGet('trackfit_openai_key');
+      const storedTheme = safeLocalGet('trackfit_theme');
+      if (storedTheme === 'light') setIsDark(false);
       if (storedUnit === 'lbs') setWeightUnit('lbs');
       if (storedWater) setWaterGoalMl(Number(storedWater));
       if (storedAiKey) setOpenAiKey(storedAiKey);
@@ -210,6 +213,13 @@ export default function TrackFitApp() {
       else setLoading(false);
     } catch { setMounted(true); setLoading(false); }
   }, []);
+
+  // ─── Theme Toggle ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!mounted) return;
+    document.documentElement.classList.toggle('dark', isDark);
+    safeLocalSet('trackfit_theme', isDark ? 'dark' : 'light');
+  }, [isDark, mounted]);
 
   // ─── Workout Timer Tick ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -1094,7 +1104,7 @@ export default function TrackFitApp() {
   // ─── Loading / Unmounted ──────────────────────────────────────────────────────
   if (!mounted) return (
     <div className="flex min-h-screen items-center justify-center bg-[#070709]">
-      <div className="flex items-center gap-2 text-zinc-400 text-sm">
+      <div className="flex items-center gap-2 dark:text-zinc-400 text-gray-500 text-sm">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         Loading TrackFit...
       </div>
@@ -1107,24 +1117,24 @@ export default function TrackFitApp() {
       <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-violet-700/10 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-emerald-600/10 blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-md bg-[#111116]/90 border border-[#23232f] backdrop-blur-md shadow-2xl rounded-2xl p-6 space-y-4 relative z-10 text-zinc-100">
+      <div className="w-full max-w-md dark:bg-[#111116] bg-white/90 border border-[#23232f] backdrop-blur-md shadow-2xl rounded-2xl p-6 space-y-4 relative z-10 dark:text-zinc-100 text-gray-900">
         <div className="text-center space-y-2">
           <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg animate-pulse">
             <Dumbbell className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">Welcome to TrackFit</h1>
-          <p className="text-zinc-400 text-sm">Connect your PostgreSQL database to own your data permanently.</p>
+          <p className="dark:text-zinc-400 text-gray-500 text-sm">Connect your PostgreSQL database to own your data permanently.</p>
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="conn" className="text-xs lg:text-sm font-semibold uppercase tracking-wider text-zinc-400">PostgreSQL Connection String</Label>
+          <Label htmlFor="conn" className="text-xs lg:text-sm font-semibold uppercase tracking-wider dark:text-zinc-400 text-gray-500">PostgreSQL Connection String</Label>
           <div className="relative">
-            <Database className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+            <Database className="absolute left-3 top-3 h-4 w-4 dark:text-zinc-500 text-gray-500" />
             <Input id="conn" type="text" placeholder="postgresql://user:pass@127.0.0.1:5432/dbname"
               value={dbConn} onChange={e => setDbConn(e.target.value)}
-              className="pl-9 bg-[#171720]/80 border-[#2a2a38] text-zinc-200 placeholder:text-zinc-600" />
+              className="pl-9 bg-[#171720]/80 border-[#2a2a38] dark:text-zinc-200 text-gray-800 placeholder:dark:text-zinc-600 text-gray-400" />
           </div>
-          <p className="text-sm lg:text-base text-zinc-500 flex items-center gap-1">
+          <p className="text-sm lg:text-base dark:text-zinc-500 text-gray-500 flex items-center gap-1">
             <Info className="h-3 w-3 shrink-0" /> WSL users: use <code className="text-indigo-400 mx-1">127.0.0.1</code> not <code className="text-indigo-400 mx-1">localhost</code>
           </p>
         </div>
@@ -1147,10 +1157,10 @@ export default function TrackFitApp() {
         </Button>
 
         <div className="relative flex items-center">
-          <div className="flex-grow border-t border-[#23232f]" /><span className="mx-4 text-zinc-600 text-xs lg:text-sm uppercase tracking-wider">or</span><div className="flex-grow border-t border-[#23232f]" />
+          <div className="flex-grow border-t border-[#23232f]" /><span className="mx-4 dark:text-zinc-600 text-gray-400 text-xs lg:text-sm uppercase tracking-wider">or</span><div className="flex-grow border-t border-[#23232f]" />
         </div>
 
-        <Button variant="outline" className="w-full bg-[#181822] border-[#2c2c3e] hover:bg-[#232331] text-zinc-300 h-11 rounded-xl" onClick={() => setShowDemoWarning(true)}>
+        <Button variant="outline" className="w-full dark:bg-[#181822] bg-gray-100 border-[#2c2c3e] hover:bg-[#232331] dark:text-zinc-300 text-gray-700 h-11 rounded-xl" onClick={() => setShowDemoWarning(true)}>
           <Sparkles className="mr-2 h-4 w-4 text-emerald-400" /> Try Local Storage Demo
         </Button>
 
@@ -1161,11 +1171,11 @@ export default function TrackFitApp() {
             </div>
             <div className="flex gap-2">
               <Button className="flex-1 bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-700/50 text-xs h-8" onClick={enableDemoMode}>I understand, continue</Button>
-              <Button className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs h-8" onClick={() => setShowDemoWarning(false)}>Cancel</Button>
+              <Button className="flex-1 bg-zinc-800 hover:bg-zinc-700 dark:text-zinc-300 text-gray-700 text-xs h-8" onClick={() => setShowDemoWarning(false)}>Cancel</Button>
             </div>
           </div>
         )}
-        <p className="text-center text-xs lg:text-sm text-zinc-600">TrackFit v1.1.0 · Own your fitness data.</p>
+        <p className="text-center text-xs lg:text-sm dark:text-zinc-600 text-gray-400">TrackFit v1.1.0 · Own your fitness data.</p>
       </div>
     </div>
   );
@@ -1173,7 +1183,7 @@ export default function TrackFitApp() {
   // ─── Sidebar Nav Item ─────────────────────────────────────────────────────────
   const SidebarNavItem = ({ tab, icon: Icon, label }: { tab: TabId; icon: React.ElementType; label: string }) => (
     <button onClick={() => setActiveTab(tab)}
-      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${activeTab === tab ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'}`}>
+      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${activeTab === tab ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' : 'dark:text-zinc-400 text-gray-500 hover:dark:text-zinc-200 text-gray-800 hover:bg-white/5'}`}>
       <Icon className="h-4 w-4 shrink-0" />{label}
     </button>
   );
@@ -1184,7 +1194,7 @@ export default function TrackFitApp() {
       <div className="flex gap-1 bg-zinc-900/80 rounded-lg p-0.5 border border-zinc-800/50">
         {(['7d', '14d', '30d', 'all', 'custom'] as TimeFrame[]).map(tf => (
           <button key={tf} onClick={() => setChartTimeFrame(tf)}
-            className={`px-2.5 py-1 rounded-md text-sm lg:text-base font-semibold transition-all cursor-pointer ${chartTimeFrame === tf ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+            className={`px-2.5 py-1 rounded-md text-sm lg:text-base font-semibold transition-all cursor-pointer ${chartTimeFrame === tf ? 'bg-indigo-600 text-white' : 'dark:text-zinc-500 text-gray-500 hover:dark:text-zinc-300 text-gray-700'}`}>
             {tf === 'all' ? 'All' : tf === 'custom' ? 'Custom' : tf.toUpperCase()}
           </button>
         ))}
@@ -1192,10 +1202,10 @@ export default function TrackFitApp() {
       {chartTimeFrame === 'custom' && (
         <div className="flex items-center gap-2 animate-fade-in-up">
           <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)}
-            className="bg-zinc-900/80 border border-zinc-700/50 rounded-lg px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
-          <span className="text-zinc-600 text-xs">→</span>
+            className="bg-zinc-900/80 border border-zinc-700/50 rounded-lg px-2 py-1.5 text-xs dark:text-zinc-300 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
+          <span className="dark:text-zinc-600 text-gray-400 text-xs">→</span>
           <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)}
-            className="bg-zinc-900/80 border border-zinc-700/50 rounded-lg px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
+            className="bg-zinc-900/80 border border-zinc-700/50 rounded-lg px-2 py-1.5 text-xs dark:text-zinc-300 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
         </div>
       )}
     </div>
@@ -1208,14 +1218,14 @@ export default function TrackFitApp() {
     return (
       <div className="p-3.5 flex items-center justify-between gap-3 min-w-0 group">
         <div className="space-y-0.5 max-w-[65%]">
-          <h4 className="font-semibold text-zinc-200 text-xs truncate">{food.foodName}</h4>
-          <p className="text-xs lg:text-sm text-zinc-500">{food.quantity}g · P:{Math.round(food.protein)}g · C:{Math.round(food.carbs)}g · F:{Math.round(food.fat)}g</p>
-          {!editable && <p className="text-[10px] lg:text-xs text-zinc-600 flex items-center gap-0.5"><Lock className="h-2.5 w-2.5" />Locked after 6h</p>}
+          <h4 className="font-semibold dark:text-zinc-200 text-gray-800 text-xs truncate">{food.foodName}</h4>
+          <p className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">{food.quantity}g · P:{Math.round(food.protein)}g · C:{Math.round(food.carbs)}g · F:{Math.round(food.fat)}g</p>
+          {!editable && <p className="text-[10px] lg:text-xs dark:text-zinc-600 text-gray-400 flex items-center gap-0.5"><Lock className="h-2.5 w-2.5" />Locked after 6h</p>}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="font-bold text-zinc-300 text-xs lg:text-sm">{Math.round(food.calories)} kcal</span>
+          <span className="font-bold dark:text-zinc-300 text-gray-700 text-xs lg:text-sm">{Math.round(food.calories)} kcal</span>
           {editable ? (
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-600 hover:text-indigo-400" onClick={() => openEditFood(food)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 dark:text-zinc-600 text-gray-400 hover:text-indigo-400" onClick={() => openEditFood(food)}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
           ) : (
@@ -1224,7 +1234,7 @@ export default function TrackFitApp() {
             </Button>
           )}
           {editable ? (
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-600 hover:text-red-400" onClick={() => handleDeleteFood(food.id)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 dark:text-zinc-600 text-gray-400 hover:text-red-400" onClick={() => handleDeleteFood(food.id)}>
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           ) : (
@@ -1239,15 +1249,15 @@ export default function TrackFitApp() {
 
   // ─── Main App ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen w-full bg-[#070709] text-zinc-200 font-sans flex overflow-x-hidden">
+    <div className="min-h-screen w-full dark:bg-[#070709] bg-gray-50 dark:dark:text-zinc-200 text-gray-800 text-gray-800 font-sans flex overflow-x-hidden transition-colors duration-300">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-[#0d0d12] border-r border-[#1b1b26]/80 sticky top-0 h-screen z-30 p-4 gap-4">
+      <aside className="hidden lg:flex flex-col w-60 shrink-0 dark:bg-[#0d0d12] bg-white dark:border-[#1b1b26]/80 border-gray-200 border-r sticky top-0 h-screen z-30 p-4 gap-4">
         <div className="flex items-center gap-2.5 px-2 py-1 mb-1">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-md">
             <Dumbbell className="h-4 w-4 text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">TrackFit</h1>
+            <h1 className="text-sm font-bold dark:bg-gradient-to-r from-white to-zinc-400 bg-gradient-to-r from-gray-900 to-gray-500 bg-clip-text text-transparent">TrackFit</h1>
             {isDemoMode && (
               <button className="flex items-center gap-1 text-[10px] lg:text-xs font-bold text-amber-400 uppercase tracking-widest" onClick={() => setShowDemoWarning(true)}>
                 Local DB <Info className="h-2.5 w-2.5" />
@@ -1257,13 +1267,13 @@ export default function TrackFitApp() {
         </div>
 
         {/* Date Nav in sidebar */}
-        <div className="flex items-center justify-between bg-[#181822] rounded-xl px-3 py-2 border border-[#252530]">
-          <button onClick={() => shiftDate(-1)} className="text-zinc-500 hover:text-zinc-200 cursor-pointer"><ChevronLeft className="h-4 w-4" /></button>
+        <div className="flex items-center justify-between dark:dark:bg-[#181822] bg-gray-100 bg-gray-100 rounded-xl px-3 py-2 dark:dark:border-[#252530] border-gray-200 border-gray-200 border">
+          <button onClick={() => shiftDate(-1)} className="dark:dark:text-zinc-500 text-gray-500 text-gray-400 hover:dark:text-zinc-200 text-gray-800 cursor-pointer"><ChevronLeft className="h-4 w-4" /></button>
           <div className="text-center">
-            <p className="text-[10px] lg:text-xs text-zinc-500 uppercase tracking-wider font-semibold">Viewing</p>
-            <p className="text-xs lg:text-sm font-bold text-zinc-200">{formatDateFriendly(activeDate)}</p>
+            <p className="text-[10px] lg:text-xs dark:dark:text-zinc-500 text-gray-500 text-gray-500 uppercase tracking-wider font-semibold">Viewing</p>
+            <p className="text-xs lg:text-sm font-bold dark:dark:text-zinc-200 text-gray-800 text-gray-800">{formatDateFriendly(activeDate)}</p>
           </div>
-          <button onClick={() => shiftDate(1)} className="text-zinc-500 hover:text-zinc-200 cursor-pointer"><ChevronRight className="h-4 w-4" /></button>
+          <button onClick={() => shiftDate(1)} className="dark:dark:text-zinc-500 text-gray-500 text-gray-400 hover:dark:text-zinc-200 text-gray-800 cursor-pointer"><ChevronRight className="h-4 w-4" /></button>
         </div>
 
         <nav className="flex flex-col gap-1 flex-1">
@@ -1288,12 +1298,12 @@ export default function TrackFitApp() {
               <AlertCircle className="h-5 w-5 shrink-0" />
               <h3 className="font-bold text-sm">Local Storage Warning</h3>
             </div>
-            <p className="text-xs lg:text-sm text-zinc-400 leading-relaxed">
+            <p className="text-xs lg:text-sm dark:text-zinc-400 text-gray-500 leading-relaxed">
               You are using <strong className="text-amber-300">Local DB (Browser Storage)</strong>. Your data exists only in this browser. Clearing cookies, switching browsers, or using Private/Incognito will <strong className="text-red-400">permanently erase all data</strong>. Connect a PostgreSQL database for reliable, permanent storage.
             </p>
             <div className="flex gap-2">
               <Button className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-9" onClick={() => { setShowDemoWarning(false); setActiveTab('settings'); }}>Connect Database</Button>
-              <Button className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs h-9" onClick={() => setShowDemoWarning(false)}>Got it</Button>
+              <Button className="flex-1 bg-zinc-800 hover:bg-zinc-700 dark:text-zinc-300 text-gray-700 text-xs h-9" onClick={() => setShowDemoWarning(false)}>Got it</Button>
             </div>
           </div>
         </div>
@@ -1303,13 +1313,13 @@ export default function TrackFitApp() {
       <div className="flex-1 min-w-0 w-full flex flex-col min-h-screen">
 
         {/* Mobile Header */}
-        <header className="lg:hidden w-full min-w-0 px-4 sm:px-5 py-4 border-b border-[#1b1b26]/60 flex items-center justify-between gap-3 bg-[#0d0d12]/95 backdrop-blur-md sticky top-0 z-40">
+        <header className="lg:hidden w-full min-w-0 px-4 sm:px-5 py-4 dark:border-[#1b1b26]/60 border-gray-200 border-b flex items-center justify-between gap-3 dark:bg-[#0d0d12]/95 bg-white/95 backdrop-blur-md sticky top-0 z-40">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center">
               <Dumbbell className="h-4 w-4 text-white" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent truncate">TrackFit</h1>
+              <h1 className="text-base font-bold dark:bg-gradient-to-r from-white to-zinc-400 bg-gradient-to-r from-gray-900 to-gray-500 bg-clip-text text-transparent truncate">TrackFit</h1>
               {isDemoMode && (
                 <button className="flex items-center gap-1 text-[10px] lg:text-xs font-bold text-amber-400 uppercase tracking-widest leading-none truncate" onClick={() => setShowDemoWarning(true)}>
                   Local DB <Info className="h-2.5 w-2.5 shrink-0" />
@@ -1317,7 +1327,7 @@ export default function TrackFitApp() {
               )}
             </div>
           </div>
-          <div className="shrink-0 max-w-[48%] flex items-center gap-1.5 bg-[#171722]/80 border border-[#232333]/80 px-2.5 py-1 rounded-full text-xs text-zinc-400">
+          <div className="shrink-0 max-w-[48%] flex items-center gap-1.5 dark:bg-[#171722] bg-gray-50/80 border border-[#232333]/80 px-2.5 py-1 rounded-full text-xs dark:text-zinc-400 text-gray-500">
             <CalendarIcon className="h-3 w-3 shrink-0 text-indigo-400" />
             <span className="min-w-0 truncate font-semibold">{formatDateFriendly(activeDate)}</span>
           </div>
@@ -1325,18 +1335,18 @@ export default function TrackFitApp() {
 
         {/* Mobile Date Strip */}
         <div className="lg:hidden bg-[#101016]/40 px-4 py-2 border-b border-[#1b1b26]/40 flex items-center justify-between gap-2 text-xs lg:text-sm">
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-zinc-400" onClick={() => shiftDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <span className="min-w-0 flex-1 truncate text-center font-medium text-zinc-400">{activeDate ? new Date(activeDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-zinc-400" onClick={() => shiftDate(1)}><ChevronRight className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 dark:text-zinc-400 text-gray-500" onClick={() => shiftDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+          <span className="min-w-0 flex-1 truncate text-center font-medium dark:text-zinc-400 text-gray-500">{activeDate ? new Date(activeDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 dark:text-zinc-400 text-gray-500" onClick={() => shiftDate(1)}><ChevronRight className="h-4 w-4" /></Button>
         </div>
 
         {/* Desktop Title */}
         <div className="hidden lg:flex items-center justify-between px-8 py-5 border-b border-[#1b1b26]/40">
           <div>
-            <h2 className="text-xl font-bold text-zinc-100">
+            <h2 className="text-xl font-bold dark:text-zinc-100 text-gray-900">
               {activeTab === 'dashboard' && 'Overview'}{activeTab === 'food' && 'Meal Tracker'}{activeTab === 'workout' && 'Workout Log'}{activeTab === 'insights' && 'Insights & Trends'}{activeTab === 'settings' && 'Settings'}
             </h2>
-            <p className="text-xs lg:text-sm text-zinc-500 mt-0.5">{activeDate ? new Date(activeDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : ''}</p>
+            <p className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 mt-0.5">{activeDate ? new Date(activeDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : ''}</p>
           </div>
           {!isDemoMode && <div className="text-sm lg:text-base text-indigo-400 flex items-center gap-1.5 bg-indigo-950/30 border border-indigo-900/40 px-3 py-1.5 rounded-full"><Database className="h-3 w-3" />PostgreSQL</div>}
         </div>
@@ -1346,7 +1356,7 @@ export default function TrackFitApp() {
 
           {loading ? (
             <div className="space-y-4 pt-8">
-              <div className="flex items-center justify-center gap-2 text-zinc-400 text-sm"><div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />Loading...</div>
+              <div className="flex items-center justify-center gap-2 dark:text-zinc-400 text-gray-500 text-sm"><div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />Loading...</div>
               <Skeleton className="h-44 w-full rounded-2xl bg-[#14141d]" />
               <Skeleton className="h-32 w-full rounded-2xl bg-[#14141d]" />
             </div>
@@ -1357,7 +1367,7 @@ export default function TrackFitApp() {
               <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0">
 
                 {/* Calorie Ring */}
-                <Card className="bg-gradient-to-b from-[#14141c] to-[#101017] border-[#222231]/80 rounded-2xl overflow-hidden">
+                <Card className="bg-gradient-to-b from-[#14141c] to-[#101017] dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
                   <CardContent className="pt-6 flex flex-col items-center">
                     <div className="relative flex items-center justify-center w-36 h-36">
                       <svg className="w-full h-full -rotate-90">
@@ -1366,29 +1376,29 @@ export default function TrackFitApp() {
                           strokeDasharray={2 * Math.PI * 62} strokeDashoffset={2 * Math.PI * 62 * (1 - Math.min(1, dailyTotals.calories / goals.calories))} strokeLinecap="round" fill="transparent" />
                       </svg>
                       <div className="absolute flex flex-col items-center text-center">
-                        <span className="text-xs lg:text-sm text-zinc-500 uppercase tracking-widest font-semibold">Remaining</span>
+                        <span className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 uppercase tracking-widest font-semibold">Remaining</span>
                         <span className="text-3xl font-extrabold text-white">{Math.round(remaining.calories)}</span>
-                        <span className="text-xs lg:text-sm text-zinc-400">of {goals.calories} kcal</span>
+                        <span className="text-xs lg:text-sm dark:text-zinc-400 text-gray-500">of {goals.calories} kcal</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 w-full mt-5 pt-4 border-t border-[#1b1b27]/60 text-xs lg:text-sm">
-                      <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-400" /><div><span className="text-zinc-500 block text-xs lg:text-sm mb-0.5">Consumed</span><span className="font-bold text-zinc-300">{Math.round(dailyTotals.calories)} kcal</span></div></div>
-                      <div className="flex items-center gap-2 justify-end text-right"><div className="h-2 w-2 rounded-full bg-indigo-500" /><div><span className="text-zinc-500 block text-xs lg:text-sm mb-0.5">Sets Logged</span><span className="font-bold text-zinc-300">{workoutLogs.length}</span></div></div>
+                      <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-400" /><div><span className="dark:text-zinc-500 text-gray-500 block text-xs lg:text-sm mb-0.5">Consumed</span><span className="font-bold dark:text-zinc-300 text-gray-700">{Math.round(dailyTotals.calories)} kcal</span></div></div>
+                      <div className="flex items-center gap-2 justify-end text-right"><div className="h-2 w-2 rounded-full bg-indigo-500" /><div><span className="dark:text-zinc-500 text-gray-500 block text-xs lg:text-sm mb-0.5">Sets Logged</span><span className="font-bold dark:text-zinc-300 text-gray-700">{workoutLogs.length}</span></div></div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Macros */}
-                <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl">
-                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><Apple className="h-4 w-4 text-indigo-400" />Daily Macros</div></CardHeader>
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
+                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><Apple className="h-4 w-4 text-indigo-400" />Daily Macros</div></CardHeader>
                   <CardContent className="px-5 pb-5 space-y-3 text-xs lg:text-sm">
                     {[{ l: 'Protein', v: dailyTotals.protein, g: goals.protein, c: 'bg-orange-400' }, { l: 'Carbs', v: dailyTotals.carbs, g: goals.carbs, c: 'bg-indigo-400' }, { l: 'Fiber', v: dailyTotals.fiber, g: goals.fiber, c: 'bg-teal-400' }, { l: 'Fat', v: dailyTotals.fat, g: goals.fat, c: 'bg-yellow-400' }].map(m => (
                       <div key={m.l} className="space-y-1.5">
                         <div className="flex justify-between font-semibold">
-                          <span className="text-zinc-400 flex items-center gap-1"><span className={`h-2.5 w-2.5 rounded-full ${m.c} inline-block`} />{m.l}</span>
-                          <span className="text-zinc-300">{Math.round(m.v)}g <span className="text-zinc-500 font-normal">/ {m.g}g</span></span>
+                          <span className="dark:text-zinc-400 text-gray-500 flex items-center gap-1"><span className={`h-2.5 w-2.5 rounded-full ${m.c} inline-block`} />{m.l}</span>
+                          <span className="dark:text-zinc-300 text-gray-700">{Math.round(m.v)}g <span className="dark:text-zinc-500 text-gray-500 font-normal">/ {m.g}g</span></span>
                         </div>
-                        <div className="h-2 w-full bg-[#181822] rounded-full overflow-hidden"><div className={`h-full ${m.c} transition-all duration-500 rounded-full`} style={{ width: `${Math.min(100, (m.v / m.g) * 100)}%` }} /></div>
+                        <div className="h-2 w-full dark:bg-[#181822] bg-gray-100 rounded-full overflow-hidden"><div className={`h-full ${m.c} transition-all duration-500 rounded-full`} style={{ width: `${Math.min(100, (m.v / m.g) * 100)}%` }} /></div>
                       </div>
                     ))}
                   </CardContent>
@@ -1396,32 +1406,32 @@ export default function TrackFitApp() {
 
                 {/* Water + Weight mini cards */}
                 <div className="grid grid-cols-2 gap-3 lg:col-span-2">
-                  <Card className="bg-[#0e1218] border-[#1a2530]/80 rounded-2xl p-4">
-                    <div className="flex items-center gap-2 mb-2"><Droplets className="h-4 w-4 text-sky-400" /><span className="text-xs lg:text-sm font-semibold text-zinc-300">Water</span></div>
+                  <Card className="dark:bg-[#0e1218] bg-sky-50 dark:border-[#1a2530] border-gray-200/80 rounded-2xl p-4">
+                    <div className="flex items-center gap-2 mb-2"><Droplets className="h-4 w-4 text-sky-400" /><span className="text-xs lg:text-sm font-semibold dark:text-zinc-300 text-gray-700">Water</span></div>
                     <div className="text-2xl font-extrabold text-sky-300">{(totalWater / 1000).toFixed(1)}L</div>
-                    <div className="text-xs lg:text-sm text-zinc-500">of {(waterGoalMl / 1000).toFixed(1)}L</div>
-                    <div className="h-1.5 w-full bg-[#181822] rounded-full overflow-hidden mt-2"><div className="h-full bg-sky-400 transition-all duration-500 rounded-full" style={{ width: `${Math.min(100, (totalWater / waterGoalMl) * 100)}%` }} /></div>
+                    <div className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">of {(waterGoalMl / 1000).toFixed(1)}L</div>
+                    <div className="h-1.5 w-full dark:bg-[#181822] bg-gray-100 rounded-full overflow-hidden mt-2"><div className="h-full bg-sky-400 transition-all duration-500 rounded-full" style={{ width: `${Math.min(100, (totalWater / waterGoalMl) * 100)}%` }} /></div>
                     <div className="flex gap-1.5 mt-2.5 flex-wrap">
                       {[250, 500, 1000].map(ml => <button key={ml} onClick={() => handleLogWater(ml)} className="text-xs lg:text-sm bg-sky-950/40 border border-sky-900/50 text-sky-300 px-2 py-1 rounded-lg hover:bg-sky-900/40 cursor-pointer font-medium">+{ml}ml</button>)}
                     </div>
                   </Card>
 
-                  <Card className="bg-[#100e18] border-[#201a30]/80 rounded-2xl p-4">
-                    <div className="flex items-center gap-2 mb-2"><Scale className="h-4 w-4 text-violet-400" /><span className="text-xs lg:text-sm font-semibold text-zinc-300">Weight</span></div>
+                  <Card className="dark:bg-[#100e18] bg-violet-50 dark:border-[#201a30] border-gray-200/80 rounded-2xl p-4">
+                    <div className="flex items-center gap-2 mb-2"><Scale className="h-4 w-4 text-violet-400" /><span className="text-xs lg:text-sm font-semibold dark:text-zinc-300 text-gray-700">Weight</span></div>
                     {weightLog ? (
                       <>
                         <div className="text-2xl font-extrabold text-violet-300">{displayWeight(weightLog.weight)}</div>
-                        <div className="text-xs lg:text-sm text-zinc-500">{weightUnit} today</div>
+                        <div className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">{weightUnit} today</div>
                         {weightLog.bodyFat !== undefined && weightLog.bodyFat !== null && (
-                          <div className="text-xs lg:text-sm text-zinc-400 mt-0.5">Body Fat: {weightLog.bodyFat}%</div>
+                          <div className="text-xs lg:text-sm dark:text-zinc-400 text-gray-500 mt-0.5">Body Fat: {weightLog.bodyFat}%</div>
                         )}
                         {weightHistory.length >= 2 && (() => { const prev = weightHistory[weightHistory.length - 2]?.weight; if (!prev) return null; const d = weightLog.weight - prev; return <div className={`text-sm lg:text-base font-semibold mt-1 ${d > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>{d > 0 ? '+' : ''}{(weightUnit === 'lbs' ? d * 2.20462 : d).toFixed(1)}{weightUnit}</div> })()}
                       </>
                     ) : (
                       <div className="flex flex-col gap-2 mt-1">
                         <div className="flex items-center gap-1.5">
-                          <Input type="number" step="0.1" placeholder={`Weight (${weightUnit})`} value={weightFormValue || ''} onChange={e => setWeightFormValue(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8 flex-1 text-center" />
-                          <Input type="number" step="0.1" placeholder="Fat % (opt)" value={bodyFatFormValue || ''} onChange={e => setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8 w-20 text-center" />
+                          <Input type="number" step="0.1" placeholder={`Weight (${weightUnit})`} value={weightFormValue || ''} onChange={e => setWeightFormValue(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8 flex-1 text-center" />
+                          <Input type="number" step="0.1" placeholder="Fat % (opt)" value={bodyFatFormValue || ''} onChange={e => setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8 w-20 text-center" />
                         </div>
                         <button onClick={handleLogWeight} className="text-xs lg:text-sm w-full bg-violet-600/30 border border-violet-600/50 text-violet-300 py-1.5 rounded-lg hover:bg-violet-600/40 cursor-pointer font-medium text-center">Log Weight</button>
                       </div>
@@ -1430,29 +1440,29 @@ export default function TrackFitApp() {
                 </div>
 
                 {/* Should I Eat This */}
-                <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl relative overflow-hidden lg:col-span-2">
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl relative overflow-hidden lg:col-span-2">
                   <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-orange-400 via-indigo-500 to-teal-400" />
                   <CardHeader className="py-4 px-5">
-                    <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><Sparkles className="h-4 w-4 text-orange-400" />Should I Eat This?</div>
-                    <CardDescription className="text-sm lg:text-base text-zinc-500">Check a snack against your remaining daily budget.</CardDescription>
+                    <div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><Sparkles className="h-4 w-4 text-orange-400" />Should I Eat This?</div>
+                    <CardDescription className="text-sm lg:text-base dark:text-zinc-500 text-gray-500">Check a snack against your remaining daily budget.</CardDescription>
                   </CardHeader>
                   <CardContent className="px-5 pb-5 space-y-3 text-xs lg:text-sm">
                     <div className="flex items-center gap-2">
-                      <Label className="text-zinc-400 shrink-0 w-12">Item</Label>
-                      <Input type="text" value={sandName} onChange={e => setSandName(e.target.value)} className="h-8 bg-[#181822] border-[#222233] text-xs lg:text-sm rounded-lg" />
+                      <Label className="dark:text-zinc-400 text-gray-500 shrink-0 w-12">Item</Label>
+                      <Input type="text" value={sandName} onChange={e => setSandName(e.target.value)} className="h-8 dark:bg-[#181822] bg-gray-100 dark:border-[#222233] border-gray-200 text-xs lg:text-sm rounded-lg" />
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                       {[{ l: 'Cal', v: sandCalories, s: setSandCalories }, { l: 'Protein (g)', v: sandProtein, s: setSandProtein }, { l: 'Carbs (g)', v: sandCarbs, s: setSandCarbs }, { l: 'Fat (g)', v: sandFat, s: setSandFat }].map(f => (
                         <div key={f.l} className="flex items-center gap-1.5">
-                          <Label className="text-zinc-400 shrink-0 text-xs lg:text-sm w-14">{f.l}</Label>
-                          <Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="h-7 bg-[#181822] border-[#222233] text-xs lg:text-sm rounded-lg" />
+                          <Label className="dark:text-zinc-400 text-gray-500 shrink-0 text-xs lg:text-sm w-14">{f.l}</Label>
+                          <Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="h-7 dark:bg-[#181822] bg-gray-100 dark:border-[#222233] border-gray-200 text-xs lg:text-sm rounded-lg" />
                         </div>
                       ))}
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
                       {[{ e: '🥪', n: 'Toastie', c: 340, p: 18, cb: 32, f: 12, fi: 2 }, { e: '🍪', n: 'Cookie', c: 220, p: 3, cb: 30, f: 10, fi: 1 }, { e: '🥛', n: 'Protein Shake', c: 250, p: 35, cb: 15, f: 4, fi: 0 }, { e: '🍫', n: 'Snickers', c: 250, p: 4, cb: 33, f: 12, fi: 1 }].map(pr => (
                         <button key={pr.n} onClick={() => { setSandName(`${pr.e} ${pr.n}`); setSandCalories(pr.c); setSandProtein(pr.p); setSandCarbs(pr.cb); setSandFat(pr.f); setSandFiber(pr.fi); setSandVerdict(null); setAiRecommendation(null); }}
-                          className="text-xs lg:text-sm bg-[#171720] border border-[#242436] text-zinc-400 px-2 py-1 rounded-full hover:text-white cursor-pointer">{pr.e} {pr.n}</button>
+                          className="text-xs lg:text-sm bg-[#171720] border dark:border-[#242436] border-gray-300 dark:text-zinc-400 text-gray-500 px-2 py-1 rounded-full hover:text-white cursor-pointer">{pr.e} {pr.n}</button>
                       ))}
                     </div>
 
@@ -1463,11 +1473,11 @@ export default function TrackFitApp() {
                           <span className={`h-2.5 w-2.5 rounded-full inline-block ${sandVerdict.status === 'green' ? 'bg-emerald-400' : sandVerdict.status === 'yellow' ? 'bg-yellow-400' : sandVerdict.status === 'orange' ? 'bg-orange-400' : 'bg-red-400'}`} />
                           {sandVerdict.text}
                         </div>
-                        <p className="text-zinc-300 text-sm lg:text-base">{sandVerdict.justification}</p>
-                        <button onClick={() => setSandVerdict(null)} className="text-xs lg:text-sm text-zinc-600 hover:text-zinc-400 cursor-pointer">Reset</button>
+                        <p className="dark:text-zinc-300 text-gray-700 text-sm lg:text-base">{sandVerdict.justification}</p>
+                        <button onClick={() => setSandVerdict(null)} className="text-xs lg:text-sm dark:text-zinc-600 text-gray-400 hover:dark:text-zinc-400 text-gray-500 cursor-pointer">Reset</button>
                       </div>
                     ) : (
-                      <Button className="w-full bg-[#1e1e2c] border border-[#2b2b3f] hover:bg-[#28283a] text-zinc-300 font-semibold h-9 rounded-xl" onClick={calculateVerdict}>
+                      <Button className="w-full bg-[#1e1e2c] border border-[#2b2b3f] hover:bg-[#28283a] dark:text-zinc-300 text-gray-700 font-semibold h-9 rounded-xl" onClick={calculateVerdict}>
                         Quick Analyze
                       </Button>
                     )}
@@ -1482,9 +1492,9 @@ export default function TrackFitApp() {
                         <div className={`text-sm font-bold ${aiRecommendation.verdict?.includes('Go') ? 'text-emerald-400' : aiRecommendation.verdict?.includes('half') ? 'text-yellow-400' : 'text-orange-400'}`}>
                           {aiRecommendation.verdict}
                         </div>
-                        <p className="text-sm lg:text-base text-zinc-300 leading-relaxed">{aiRecommendation.reasoning}</p>
+                        <p className="text-sm lg:text-base dark:text-zinc-300 text-gray-700 leading-relaxed">{aiRecommendation.reasoning}</p>
                         {aiRecommendation.tip && <p className="text-sm lg:text-base text-indigo-300/80 italic">💡 {aiRecommendation.tip}</p>}
-                        <button onClick={() => setAiRecommendation(null)} className="text-xs lg:text-sm text-zinc-600 hover:text-zinc-400 cursor-pointer">Dismiss</button>
+                        <button onClick={() => setAiRecommendation(null)} className="text-xs lg:text-sm dark:text-zinc-600 text-gray-400 hover:dark:text-zinc-400 text-gray-500 cursor-pointer">Dismiss</button>
                       </div>
                     ) : (
                       <Button className="w-full h-9 rounded-xl font-semibold text-xs bg-indigo-600/20 border border-indigo-650/40 text-indigo-300 hover:bg-indigo-600/35 cursor-pointer"
@@ -1500,26 +1510,26 @@ export default function TrackFitApp() {
             {/* ══ FOOD ══ */}
             {activeTab === 'food' && (
               <div className="space-y-4 text-xs lg:text-sm">
-                <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl p-4 flex justify-between items-center">
-                  <div><span className="text-zinc-500 text-[10px] lg:text-xs uppercase tracking-widest font-semibold">Total Consumed</span><h3 className="text-xl font-bold text-white mt-0.5">{Math.round(dailyTotals.calories)} kcal</h3></div>
-                  <div className="flex gap-4 border-l border-[#222233] pl-4 text-center">
-                    <div><span className="text-orange-400 font-bold block">{Math.round(dailyTotals.protein)}g</span><span className="text-zinc-500 text-[10px] lg:text-xs">Protein</span></div>
-                    <div><span className="text-indigo-400 font-bold block">{Math.round(dailyTotals.carbs)}g</span><span className="text-zinc-500 text-[10px] lg:text-xs">Carbs</span></div>
-                    <div><span className="text-yellow-400 font-bold block">{Math.round(dailyTotals.fat)}g</span><span className="text-zinc-500 text-[10px] lg:text-xs">Fat</span></div>
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl p-4 flex justify-between items-center">
+                  <div><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs uppercase tracking-widest font-semibold">Total Consumed</span><h3 className="text-xl font-bold text-white mt-0.5">{Math.round(dailyTotals.calories)} kcal</h3></div>
+                  <div className="flex gap-4 border-l dark:border-[#222233] border-gray-200 pl-4 text-center">
+                    <div><span className="text-orange-400 font-bold block">{Math.round(dailyTotals.protein)}g</span><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs">Protein</span></div>
+                    <div><span className="text-indigo-400 font-bold block">{Math.round(dailyTotals.carbs)}g</span><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs">Carbs</span></div>
+                    <div><span className="text-yellow-400 font-bold block">{Math.round(dailyTotals.fat)}g</span><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs">Fat</span></div>
                   </div>
                 </Card>
 
                 {/* Food Recommendations */}
-                <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
                   <button
                     onClick={() => setShowRecommendations(!showRecommendations)}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-emerald-950/30 to-indigo-950/30 border-b border-[#212130]/30 flex justify-between items-center cursor-pointer hover:from-emerald-950/40 hover:to-indigo-950/40 transition-colors"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-emerald-950/30 to-indigo-950/30 border-b dark:border-[#212130] border-gray-200/30 flex justify-between items-center cursor-pointer hover:from-emerald-950/40 hover:to-indigo-950/40 transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-emerald-400" />
-                      <span className="text-zinc-300 font-semibold">Suggest Foods For You</span>
+                      <span className="dark:text-zinc-300 text-gray-700 font-semibold">Suggest Foods For You</span>
                     </div>
-                    <svg className={`h-4 w-4 text-zinc-400 transition-transform duration-200 ${showRecommendations ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className={`h-4 w-4 dark:text-zinc-400 text-gray-500 transition-transform duration-200 ${showRecommendations ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
@@ -1528,10 +1538,10 @@ export default function TrackFitApp() {
                       {loadingRecommendations ? (
                         <div className="space-y-3 animate-pulse">
                           <div className="flex items-center gap-2">
-                            <div className="h-7 w-24 bg-[#181822] rounded-lg" />
+                            <div className="h-7 w-24 dark:bg-[#181822] bg-gray-100 rounded-lg" />
                           </div>
                           {[1, 2, 3, 4].map(i => (
-                            <div key={i} className="p-2.5 bg-[#151520]/30 border border-[#212130]/60 rounded-lg animate-shimmer" style={{ animationDelay: `${i * 0.1}s` }}>
+                            <div key={i} className="p-2.5 dark:bg-[#151520] bg-gray-50/30 border dark:border-[#212130] border-gray-200/60 rounded-lg animate-shimmer" style={{ animationDelay: `${i * 0.1}s` }}>
                               <div className="flex justify-between items-start">
                                 <div className="flex-1 space-y-2">
                                   <div className="h-4 w-32 bg-[#1f1f2e] rounded" />
@@ -1544,7 +1554,7 @@ export default function TrackFitApp() {
                               </div>
                             </div>
                           ))}
-                          <div className="text-center text-zinc-500 text-xs flex items-center justify-center gap-2 pt-2">
+                          <div className="text-center dark:text-zinc-500 text-gray-500 text-xs flex items-center justify-center gap-2 pt-2">
                             <div className="h-3.5 w-3.5 animate-spin rounded-full border border-emerald-400 border-t-transparent" />
                             Finding foods for you...
                           </div>
@@ -1552,10 +1562,10 @@ export default function TrackFitApp() {
                       ) : (
                         <>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs lg:text-sm text-zinc-500">Meal:</span>
+                        <span className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Meal:</span>
                         <Select value={selectedRecommendationMealType} onValueChange={(v: any) => setSelectedRecommendationMealType(v)}>
-                          <SelectTrigger className="bg-[#181822] border-[#242436] h-7 text-xs lg:text-sm w-24"><SelectValue /></SelectTrigger>
-                          <SelectContent className="bg-[#181822] border-[#242436] text-xs lg:text-sm">
+                          <SelectTrigger className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 h-7 text-xs lg:text-sm w-24"><SelectValue /></SelectTrigger>
+                          <SelectContent className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm">
                             <SelectItem value="Breakfast">Breakfast</SelectItem>
                             <SelectItem value="Lunch">Lunch</SelectItem>
                             <SelectItem value="Dinner">Dinner</SelectItem>
@@ -1587,19 +1597,19 @@ export default function TrackFitApp() {
                                  setFoodFormMealType(rec.mealType);
                                  setFoodDialogOpen(true);
                                }}
-                               className={`text-left p-2.5 bg-[#151520]/30 border border-[#212130]/60 rounded-lg hover:bg-[#1a1a28] card-hover btn-press animate-fade-in-up stagger-${Math.min(i + 1, 8)}`}
+                               className={`text-left p-2.5 dark:bg-[#151520] bg-gray-50/30 border dark:border-[#212130] border-gray-200/60 rounded-lg hover:dark:bg-[#1a1a28] bg-gray-100 card-hover btn-press animate-fade-in-up stagger-${Math.min(i + 1, 8)}`}
                              >
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-zinc-200 text-sm lg:text-base">{rec.name}</span>
+                                    <span className="font-semibold dark:text-zinc-200 text-gray-800 text-sm lg:text-base">{rec.name}</span>
                                     <span className="text-[8px] bg-emerald-900/40 text-emerald-400 px-1.5 py-0.5 rounded">{rec.region}</span>
                                   </div>
-                                  <p className="text-[10px] lg:text-xs text-zinc-500 mt-0.5">{rec.reason}</p>
+                                  <p className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 mt-0.5">{rec.reason}</p>
                                 </div>
                                 <div className="text-right">
-                                  <span className="font-bold text-zinc-300 text-sm lg:text-base">{rec.calories} kcal</span>
-                                  <p className="text-[10px] lg:text-xs text-zinc-500">P:{rec.protein}g · C:{rec.carbs}g · F:{rec.fat}g</p>
+                                  <span className="font-bold dark:text-zinc-300 text-gray-700 text-sm lg:text-base">{rec.calories} kcal</span>
+                                  <p className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500">P:{rec.protein}g · C:{rec.carbs}g · F:{rec.fat}g</p>
                                 </div>
                               </div>
                             </button>
@@ -1616,7 +1626,7 @@ export default function TrackFitApp() {
                       {foodRecommendations.length > 0 && (
                         <button
                           onClick={() => { setFoodRecommendations([]); setFoodSuggestions([]); }}
-                          className="text-xs lg:text-sm text-zinc-600 hover:text-zinc-400 cursor-pointer"
+                          className="text-xs lg:text-sm dark:text-zinc-600 text-gray-400 hover:dark:text-zinc-400 text-gray-500 cursor-pointer"
                         >
                           Clear recommendations
                         </button>
@@ -1631,13 +1641,13 @@ export default function TrackFitApp() {
                   {(['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const).map(mt => {
                     const meals = foodLogs.filter(f => f.mealType === mt);
                     return (
-                      <Card key={mt} className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
-                        <div className="px-4 py-3 bg-[#15151e]/40 border-b border-[#212130]/30 flex justify-between items-center">
-                          <span className="text-zinc-300 font-semibold">{mt}</span>
+                      <Card key={mt} className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
+                        <div className="px-4 py-3 bg-[#15151e]/40 border-b dark:border-[#212130] border-gray-200/30 flex justify-between items-center">
+                          <span className="dark:text-zinc-300 text-gray-700 font-semibold">{mt}</span>
                           <span className="text-indigo-400 text-xs lg:text-sm">{Math.round(meals.reduce((s, m) => s + m.calories, 0))} kcal</span>
                         </div>
                         <CardContent className="p-0">
-                          {meals.length === 0 ? <p className="text-zinc-600 italic text-sm lg:text-base p-4">Nothing logged.</p> : <div className="divide-y divide-[#20202d]/40">{meals.map(f => <FoodRow key={f.id} food={f} />)}</div>}
+                          {meals.length === 0 ? <p className="dark:text-zinc-600 text-gray-400 italic text-sm lg:text-base p-4">Nothing logged.</p> : <div className="divide-y divide-[#20202d]/40">{meals.map(f => <FoodRow key={f.id} food={f} />)}</div>}
                         </CardContent>
                       </Card>
                     );
@@ -1649,26 +1659,26 @@ export default function TrackFitApp() {
                   <DialogTrigger className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold h-11 rounded-xl flex items-center justify-center cursor-pointer">
                     <Plus className="h-4 w-4 mr-1.5" />Log Food / Meal
                   </DialogTrigger>
-                  <DialogContent className="bg-[#121219] border-[#222233] text-zinc-100 max-w-sm rounded-3xl p-5">
+                  <DialogContent className="bg-[#121219] dark:border-[#222233] border-gray-200 dark:text-zinc-100 text-gray-900 max-w-sm rounded-3xl p-5">
                     <DialogHeader>
                       <DialogTitle>{isEditingFood ? 'Edit Food Entry' : 'Add Food'}</DialogTitle>
-                      <DialogDescription className="text-xs lg:text-sm text-zinc-500">{isEditingFood ? 'Update this food entry (editable within 6 hours).' : 'Search Indian foods or Open Food Facts, or enter custom macros.'}</DialogDescription>
+                      <DialogDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">{isEditingFood ? 'Update this food entry (editable within 6 hours).' : 'Search Indian foods or Open Food Facts, or enter custom macros.'}</DialogDescription>
                     </DialogHeader>
                     {!isEditingFood && (
                       <div className="space-y-2 relative">
-                        <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-500" />
-                          <Input type="text" placeholder="Search food..." value={foodSearchQuery} onChange={e => setFoodSearchQuery(e.target.value)} className="pl-8 bg-[#181822] border-[#242436] text-xs lg:text-sm h-9" />
+                        <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 dark:text-zinc-500 text-gray-500" />
+                          <Input type="text" placeholder="Search food..." value={foodSearchQuery} onChange={e => setFoodSearchQuery(e.target.value)} className="pl-8 dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-9" />
                         </div>
-                        {searchingFood && <div className="text-sm lg:text-base text-zinc-500 text-center">Searching...</div>}
+                        {searchingFood && <div className="text-sm lg:text-base dark:text-zinc-500 text-gray-500 text-center">Searching...</div>}
                         {foodSearchResults.length > 0 && (
-                          <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto bg-[#1a1a26] border border-[#2d2d3f] rounded-lg shadow-xl z-50 divide-y divide-[#242434]">
+                          <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto dark:bg-[#1a1a26] bg-gray-100 border dark:border-[#2d2d3f] border-gray-200 rounded-lg shadow-xl z-50 divide-y divide-[#242434]">
                             {foodSearchResults.map((item, i) => (
-                              <button key={i} className="w-full text-left px-3 py-2 text-sm lg:text-base hover:bg-[#222233] flex items-center gap-2 text-zinc-300" onClick={() => handleSelectFoodSearch(item)}>
+                              <button key={i} className="w-full text-left px-3 py-2 text-sm lg:text-base hover:bg-[#222233] flex items-center gap-2 dark:text-zinc-300 text-gray-700" onClick={() => handleSelectFoodSearch(item)}>
                                 {item.image ? <img src={item.image} alt="" className="h-6 w-6 object-cover rounded" /> : <div className="h-6 w-6 rounded bg-zinc-800 flex items-center justify-center text-xs lg:text-sm">{item.source === 'indian-database' ? '🍛' : '🍎'}</div>}
                                 <div className="flex-1 truncate">
                                   <span className="truncate block">{item.name}</span>
                                   {item.source === 'indian-database' && item.region && (
-                                    <span className="text-[10px] lg:text-xs text-zinc-500">{item.region} · {item.category} · {item.calories} kcal</span>
+                                    <span className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500">{item.region} · {item.category} · {item.calories} kcal</span>
                                   )}
                                 </div>
                                 {item.source === 'indian-database' && (
@@ -1681,23 +1691,23 @@ export default function TrackFitApp() {
                       </div>
                     )}
                     {selectedFoodItem && <div className="p-2.5 bg-indigo-950/20 border border-indigo-900/35 rounded-lg flex justify-between items-center"><span className="font-semibold text-indigo-400 text-sm lg:text-base truncate">Linked: {selectedFoodItem.name}</span><Button variant="ghost" size="icon" className="h-5 w-5 text-indigo-400" onClick={() => setSelectedFoodItem(null)}><X className="h-3.5 w-3.5" /></Button></div>}
-                    <div className="space-y-2 border-t border-[#1d1d2b] pt-3">
+                    <div className="space-y-2 border-t dark:border-[#1d1d2b] border-gray-200 pt-3">
                       <div className="flex gap-2">
-                        <div className="space-y-1 flex-1"><Label className="text-xs lg:text-sm text-zinc-500">Food Name</Label><Input type="text" value={foodFormName} onChange={e => setFoodFormName(e.target.value)} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" placeholder="e.g. Banana" /></div>
-                        <div className="space-y-1 w-24"><Label className="text-xs lg:text-sm text-zinc-500">Weight (g)</Label><Input type="number" value={foodFormQuantity || ''} onChange={e => setFoodFormQuantity(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" /></div>
+                        <div className="space-y-1 flex-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Food Name</Label><Input type="text" value={foodFormName} onChange={e => setFoodFormName(e.target.value)} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" placeholder="e.g. Banana" /></div>
+                        <div className="space-y-1 w-24"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Weight (g)</Label><Input type="number" value={foodFormQuantity || ''} onChange={e => setFoodFormQuantity(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
                       </div>
-                      <div className="bg-[#151520]/30 p-2.5 rounded-xl border border-[#212130]/60">
-                        <span className="text-[10px] lg:text-xs text-zinc-500 block mb-1.5 uppercase font-bold tracking-wider">Macros per 100g</span>
+                      <div className="dark:bg-[#151520] bg-gray-50/30 p-2.5 rounded-xl border dark:border-[#212130] border-gray-200/60">
+                        <span className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 block mb-1.5 uppercase font-bold tracking-wider">Macros per 100g</span>
                         <div className="grid grid-cols-5 gap-2">
                           {[{ l: 'Cal', v: foodFormCalories, s: setFoodFormCalories }, { l: 'Prot', v: foodFormProtein, s: setFoodFormProtein }, { l: 'Carb', v: foodFormCarbs, s: setFoodFormCarbs }, { l: 'Fib', v: foodFormFiber, s: setFoodFormFiber }, { l: 'Fat', v: foodFormFat, s: setFoodFormFat }].map(f => (
-                            <div key={f.l} className="space-y-0.5"><Label className="text-[10px] lg:text-xs text-zinc-500">{f.l}</Label><Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm px-1 h-7 text-center" /></div>
+                            <div key={f.l} className="space-y-0.5"><Label className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500">{f.l}</Label><Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm px-1 h-7 text-center" /></div>
                           ))}
                         </div>
                       </div>
-                      <div className="space-y-1"><Label className="text-xs lg:text-sm text-zinc-500">Meal Section</Label>
+                      <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Meal Section</Label>
                         <Select value={foodFormMealType} onValueChange={(v: any) => setFoodFormMealType(v)}>
-                          <SelectTrigger className="bg-[#181822] border-[#242436] h-8 text-xs lg:text-sm"><SelectValue /></SelectTrigger>
-                          <SelectContent className="bg-[#181822] border-[#242436] text-xs lg:text-sm">
+                          <SelectTrigger className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 h-8 text-xs lg:text-sm"><SelectValue /></SelectTrigger>
+                          <SelectContent className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm">
                             <SelectItem value="Breakfast">Breakfast</SelectItem><SelectItem value="Lunch">Lunch</SelectItem><SelectItem value="Dinner">Dinner</SelectItem><SelectItem value="Snack">Snack</SelectItem>
                           </SelectContent>
                         </Select>
@@ -1717,8 +1727,8 @@ export default function TrackFitApp() {
             {activeTab === 'workout' && (
               <div className="space-y-4 text-xs lg:text-sm">
                 {workoutLogs.length === 0 ? (
-                  <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl p-6 text-center text-zinc-500">
-                    <Dumbbell className="h-8 w-8 text-zinc-600 mx-auto mb-2.5" />
+                  <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl p-6 text-center dark:text-zinc-500 text-gray-500">
+                    <Dumbbell className="h-8 w-8 dark:text-zinc-600 text-gray-400 mx-auto mb-2.5" />
                     <p className="italic">No workouts logged today.</p>
                   </Card>
                 ) : (
@@ -1726,17 +1736,17 @@ export default function TrackFitApp() {
                     {Object.keys(groupedWorkouts).map(en => {
                       const sets = groupedWorkouts[en];
                       return (
-                        <Card key={en} className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
-                          <div className="px-4 py-3 bg-[#15151e]/40 border-b border-[#212130]/30 flex justify-between items-center text-zinc-300 font-bold">
-                            <span>{en}</span><span className="text-zinc-500 text-xs lg:text-sm font-normal">{sets.length} sets</span>
+                        <Card key={en} className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
+                          <div className="px-4 py-3 bg-[#15151e]/40 border-b dark:border-[#212130] border-gray-200/30 flex justify-between items-center dark:text-zinc-300 text-gray-700 font-bold">
+                            <span>{en}</span><span className="dark:text-zinc-500 text-gray-500 text-xs lg:text-sm font-normal">{sets.length} sets</span>
                           </div>
                           <CardContent className="p-0 divide-y divide-[#20202d]/40">
                             {sets.map(s => (
                               <div key={s.id} className="p-3 flex items-center justify-between text-xs lg:text-sm">
                                 <span className="font-semibold text-indigo-400">Set {s.setNumber}</span>
                                 <div className="flex items-center gap-3">
-                                  <span className="font-bold">{s.weight}kg</span><span className="text-zinc-500">×</span><span className="font-bold">{s.reps} reps</span>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-600 hover:text-red-400" onClick={() => handleDeleteSet(s.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                  <span className="font-bold">{s.weight}kg</span><span className="dark:text-zinc-500 text-gray-500">×</span><span className="font-bold">{s.reps} reps</span>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 dark:text-zinc-600 text-gray-400 hover:text-red-400" onClick={() => handleDeleteSet(s.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                                 </div>
                               </div>
                             ))}
@@ -1750,20 +1760,20 @@ export default function TrackFitApp() {
                   <DialogTrigger className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold h-11 rounded-xl flex items-center justify-center cursor-pointer">
                     <Plus className="h-4 w-4 mr-1.5" />Log Exercise Set
                   </DialogTrigger>
-                  <DialogContent className="bg-[#121219] border-[#222233] text-zinc-100 max-w-sm rounded-3xl p-5">
-                    <DialogHeader><DialogTitle>Log Exercise Set</DialogTitle><DialogDescription className="text-xs lg:text-sm text-zinc-500">Search the exercise database.</DialogDescription></DialogHeader>
+                  <DialogContent className="bg-[#121219] dark:border-[#222233] border-gray-200 dark:text-zinc-100 text-gray-900 max-w-sm rounded-3xl p-5">
+                    <DialogHeader><DialogTitle>Log Exercise Set</DialogTitle><DialogDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Search the exercise database.</DialogDescription></DialogHeader>
                     {!selectedExercise ? (
                       showAddCustomExercise ? (
-                        <div className="space-y-3 border-t border-[#1d1d2b] pt-3">
-                          <div className="text-sm lg:text-base font-bold text-zinc-300">Add Custom Exercise</div>
+                        <div className="space-y-3 border-t dark:border-[#1d1d2b] border-gray-200 pt-3">
+                          <div className="text-sm lg:text-base font-bold dark:text-zinc-300 text-gray-700">Add Custom Exercise</div>
                           <div className="space-y-2">
                             <div className="space-y-1">
-                              <Label className="text-xs lg:text-sm text-zinc-500">Exercise Name</Label>
-                              <Input type="text" placeholder="e.g. Incline DB Press" value={customExerciseName} onChange={e => setCustomExerciseName(e.target.value)} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" />
+                              <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Exercise Name</Label>
+                              <Input type="text" placeholder="e.g. Incline DB Press" value={customExerciseName} onChange={e => setCustomExerciseName(e.target.value)} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-xs lg:text-sm text-zinc-500">Category</Label>
-                              <select value={customExerciseCategory} onChange={e => setCustomExerciseCategory(e.target.value)} className="w-full bg-[#181822] border-[#242436] rounded-md text-xs lg:text-sm h-8 text-zinc-200 px-2">
+                              <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Category</Label>
+                              <select value={customExerciseCategory} onChange={e => setCustomExerciseCategory(e.target.value)} className="w-full dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 rounded-md text-xs lg:text-sm h-8 dark:text-zinc-200 text-gray-800 px-2">
                                 <option value="strength">Strength</option>
                                 <option value="cardio">Cardio</option>
                                 <option value="stretching">Stretching</option>
@@ -1772,19 +1782,19 @@ export default function TrackFitApp() {
                               </select>
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-xs lg:text-sm text-zinc-500">Primary Muscles</Label>
+                              <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Primary Muscles</Label>
                               <div className="grid grid-cols-3 gap-1.5 pt-1">
                                 {['Chest', 'Back', 'Quads', 'Hamstrings', 'Shoulders', 'Biceps', 'Triceps', 'Abs', 'Calves'].map(muscle => {
                                   const checked = customExerciseMuscles.includes(muscle);
                                   return (
-                                    <label key={muscle} className="flex items-center gap-1 text-[10px] lg:text-xs text-zinc-400 cursor-pointer">
+                                    <label key={muscle} className="flex items-center gap-1 text-[10px] lg:text-xs dark:text-zinc-400 text-gray-500 cursor-pointer">
                                       <input type="checkbox" checked={checked} onChange={() => {
                                         if (checked) {
                                           setCustomExerciseMuscles(customExerciseMuscles.filter(m => m !== muscle));
                                         } else {
                                           setCustomExerciseMuscles([...customExerciseMuscles, muscle]);
                                         }
-                                      }} className="rounded bg-[#181822] border-[#242436]" />
+                                      }} className="rounded dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300" />
                                       {muscle}
                                     </label>
                                   );
@@ -1793,7 +1803,7 @@ export default function TrackFitApp() {
                             </div>
                           </div>
                           <div className="flex gap-2 pt-2">
-                            <Button className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs h-8" onClick={() => { setShowAddCustomExercise(false); setCustomExerciseName(''); }}>Cancel</Button>
+                            <Button className="flex-1 bg-zinc-800 hover:bg-zinc-700 dark:text-zinc-300 text-gray-700 text-xs h-8" onClick={() => { setShowAddCustomExercise(false); setCustomExerciseName(''); }}>Cancel</Button>
                             <Button className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-8" onClick={handleCreateCustomExercise} disabled={savingCustomExercise}>
                               {savingCustomExercise ? 'Creating...' : 'Save & Select'}
                             </Button>
@@ -1801,15 +1811,15 @@ export default function TrackFitApp() {
                         </div>
                       ) : (
                         <div className="space-y-2 relative">
-                          <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-500" />
-                            <Input type="text" placeholder="e.g. Bench Press, Squat..." value={exerciseSearchQuery} onChange={e => setExerciseSearchQuery(e.target.value)} className="pl-8 bg-[#181822] border-[#242436] text-xs lg:text-sm h-9" />
+                          <div className="relative"><Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 dark:text-zinc-500 text-gray-500" />
+                            <Input type="text" placeholder="e.g. Bench Press, Squat..." value={exerciseSearchQuery} onChange={e => setExerciseSearchQuery(e.target.value)} className="pl-8 dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-9" />
                           </div>
                           {exerciseSearchResults.length > 0 && (
-                            <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto bg-[#1a1a26] border border-[#2d2d3f] rounded-lg shadow-xl z-50 divide-y divide-[#242434]">
+                            <div className="absolute top-12 left-0 w-full max-h-48 overflow-y-auto dark:bg-[#1a1a26] bg-gray-100 border dark:border-[#2d2d3f] border-gray-200 rounded-lg shadow-xl z-50 divide-y divide-[#242434]">
                               {exerciseSearchResults.map((ex, i) => (
-                                <button key={i} className="w-full text-left px-3.5 py-2 text-sm lg:text-base hover:bg-[#222233] text-zinc-300" onClick={() => selectExercise(ex.name)}>
+                                <button key={i} className="w-full text-left px-3.5 py-2 text-sm lg:text-base hover:bg-[#222233] dark:text-zinc-300 text-gray-700" onClick={() => selectExercise(ex.name)}>
                                   <div className="font-semibold">{ex.name}</div>
-                                  <div className="text-[10px] lg:text-xs text-zinc-500 mt-0.5">{ex.category} · {ex.primaryMuscles?.join(', ')}</div>
+                                  <div className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 mt-0.5">{ex.category} · {ex.primaryMuscles?.join(', ')}</div>
                                 </button>
                               ))}
                             </div>
@@ -1824,18 +1834,18 @@ export default function TrackFitApp() {
                     ) : (
                       <div className="space-y-3">
                         <div className="p-3 bg-indigo-950/20 border border-indigo-900/35 rounded-xl flex justify-between items-center">
-                          <div><span className="text-[10px] lg:text-xs text-zinc-500 uppercase font-bold block">Selected</span><span className="font-bold text-zinc-200 text-xs lg:text-sm">{selectedExercise}</span></div>
+                          <div><span className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 uppercase font-bold block">Selected</span><span className="font-bold dark:text-zinc-200 text-gray-800 text-xs lg:text-sm">{selectedExercise}</span></div>
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-indigo-400" onClick={() => setSelectedExercise('')}><X className="h-4 w-4" /></Button>
                         </div>
                         {exerciseHistory.length > 0 && (
-                          <div className="p-2.5 bg-[#171722]/50 border border-[#222235]/60 rounded-xl text-xs lg:text-sm">
-                            <span className="text-[10px] lg:text-xs text-zinc-500 uppercase font-bold block mb-1">Previous Sets</span>
-                            {exerciseHistory.slice(0, 3).map((w, i) => <div key={i} className="flex justify-between text-zinc-400"><span>Set {w.setNumber} ({w.date})</span><span className="font-bold">{w.weight}kg × {w.reps}</span></div>)}
+                          <div className="p-2.5 dark:bg-[#171722] bg-gray-50/50 border border-[#222235]/60 rounded-xl text-xs lg:text-sm">
+                            <span className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 uppercase font-bold block mb-1">Previous Sets</span>
+                            {exerciseHistory.slice(0, 3).map((w, i) => <div key={i} className="flex justify-between dark:text-zinc-400 text-gray-500"><span>Set {w.setNumber} ({w.date})</span><span className="font-bold">{w.weight}kg × {w.reps}</span></div>)}
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-3 border-t border-[#1d1d2b] pt-3">
-                          <div className="space-y-1"><Label className="text-xs lg:text-sm text-zinc-500">Weight (kg)</Label><Input type="number" step="0.5" value={workoutFormWeight || ''} onChange={e => setWorkoutFormWeight(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" /></div>
-                          <div className="space-y-1"><Label className="text-xs lg:text-sm text-zinc-500">Reps</Label><Input type="number" value={workoutFormReps || ''} onChange={e => setWorkoutFormReps(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" /></div>
+                        <div className="grid grid-cols-2 gap-3 border-t dark:border-[#1d1d2b] border-gray-200 pt-3">
+                          <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Weight (kg)</Label><Input type="number" step="0.5" value={workoutFormWeight || ''} onChange={e => setWorkoutFormWeight(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
+                          <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Reps</Label><Input type="number" value={workoutFormReps || ''} onChange={e => setWorkoutFormReps(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
                         </div>
                         <Button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs h-9 rounded-lg" onClick={handleLogSet}>Add Set</Button>
                       </div>
@@ -1863,8 +1873,8 @@ export default function TrackFitApp() {
                       onClick={() => setInsightSubTab(id)}
                       className={`flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl text-xs font-medium transition-all cursor-pointer btn-press smooth-transition ${
                         insightSubTab === id
-                          ? 'bg-zinc-800 text-zinc-100 shadow-sm ring-1 ring-zinc-700/50'
-                          : 'bg-zinc-950/50 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50 border border-zinc-800/40'
+                          ? 'bg-zinc-800 dark:text-zinc-100 text-gray-900 shadow-sm ring-1 ring-zinc-700/50'
+                          : 'bg-zinc-950/50 dark:text-zinc-500 text-gray-500 hover:dark:text-zinc-300 text-gray-700 hover:bg-zinc-900/50 border border-zinc-800/40'
                       }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -1875,7 +1885,7 @@ export default function TrackFitApp() {
 
                 {/* Time frame selector - shown for all sub-tabs */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <span className="text-xs lg:text-sm text-zinc-500 uppercase tracking-wider font-semibold">Time Frame</span>
+                  <span className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 uppercase tracking-wider font-semibold">Time Frame</span>
                   <TimeFrameSelector />
                 </div>
 
@@ -1884,31 +1894,31 @@ export default function TrackFitApp() {
                   <div className="space-y-4">
                     {/* Summary cards */}
                     <div className="grid grid-cols-3 gap-2">
-                      <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
-                        <span className="text-zinc-500 text-[11px] uppercase font-bold block">Avg</span>
+                      <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-xl p-3 text-center">
+                        <span className="dark:text-zinc-500 text-gray-500 text-[11px] uppercase font-bold block">Avg</span>
                         <h4 className="text-base font-bold text-white mt-0.5">{historyData.length > 0 ? Math.round(historyData.reduce((s, d) => s + d.calories, 0) / historyData.length) : 0}</h4>
-                        <span className="text-[10px] text-zinc-600">kcal</span>
+                        <span className="text-[10px] dark:text-zinc-600 text-gray-400">kcal</span>
                       </Card>
-                      <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
-                        <span className="text-zinc-500 text-[11px] uppercase font-bold block">Peak</span>
+                      <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-xl p-3 text-center">
+                        <span className="dark:text-zinc-500 text-gray-500 text-[11px] uppercase font-bold block">Peak</span>
                         <h4 className="text-base font-bold text-white mt-0.5">{historyData.length > 0 ? Math.max(...historyData.map(d => d.calories)) : 0}</h4>
-                        <span className="text-[10px] text-zinc-600">kcal</span>
+                        <span className="text-[10px] dark:text-zinc-600 text-gray-400">kcal</span>
                       </Card>
-                      <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
-                        <span className="text-zinc-500 text-[11px] uppercase font-bold block">Target</span>
+                      <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-xl p-3 text-center">
+                        <span className="dark:text-zinc-500 text-gray-500 text-[11px] uppercase font-bold block">Target</span>
                         <h4 className="text-base font-bold text-indigo-400 mt-0.5">{goals.calories}</h4>
-                        <span className="text-[10px] text-zinc-600">kcal</span>
+                        <span className="text-[10px] dark:text-zinc-600 text-gray-400">kcal</span>
                       </Card>
                     </div>
 
                     {/* Line chart */}
-                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
+                    <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
                       <CardHeader className="py-3 px-4 pb-1">
-                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300"><Flame className="h-4 w-4 text-orange-400" />Daily Intake</div>
-                        <CardDescription className="text-xs text-zinc-500">vs {goals.calories} kcal target</CardDescription>
+                        <div className="text-sm font-semibold flex items-center gap-2 dark:text-zinc-300 text-gray-700"><Flame className="h-4 w-4 text-orange-400" />Daily Intake</div>
+                        <CardDescription className="text-xs dark:text-zinc-500 text-gray-500">vs {goals.calories} kcal target</CardDescription>
                       </CardHeader>
                       <CardContent className="px-3 pb-4">
-                        {historyData.length < 2 ? <div className="text-center text-zinc-600 text-xs py-8 italic">Not enough data for chart.</div> : (() => {
+                        {historyData.length < 2 ? <div className="text-center dark:text-zinc-600 text-gray-400 text-xs py-8 italic">Not enough data for chart.</div> : (() => {
                           const svgW = 340, svgH = 140;
                           const padL = 36, padR = 8, padT = 10, padB = 20;
                           const chartW = svgW - padL - padR;
@@ -1937,8 +1947,8 @@ export default function TrackFitApp() {
                                 const v = Math.round(maxVal * p);
                                 return (
                                   <g key={i}>
-                                    <line x1={padL} y1={y} x2={svgW - padR} y2={y} className="stroke-[#1b1b26]/40" strokeWidth="0.5" strokeDasharray={i === 0 ? '0' : '3,3'} />
-                                    <text x={padL - 3} y={y + 3} className="fill-zinc-600" style={{ fontSize: '5px' }} textAnchor="end">{v}</text>
+                                    <line x1={padL} y1={y} x2={svgW - padR} y2={y} className="dark:stroke-[#1b1b26] stroke-gray-200/40" strokeWidth="0.5" strokeDasharray={i === 0 ? '0' : '3,3'} />
+                                    <text x={padL - 3} y={y + 3} className="dark:fill-zinc-600 fill-gray-400" style={{ fontSize: '5px' }} textAnchor="end">{v}</text>
                                   </g>
                                 );
                               })}
@@ -1955,7 +1965,7 @@ export default function TrackFitApp() {
                                 return (
                                   <g key={i}>
                                     <circle cx={p.x} cy={p.y} r={isToday ? 3.5 : 2} className={isToday ? 'fill-emerald-400 stroke-[#0d0d12] stroke-2' : 'fill-indigo-400/80'} />
-                                    {showLabel && <text x={p.x} y={svgH - 4} className="fill-zinc-600" style={{ fontSize: '5px' }} textAnchor="middle">{dayLabel}</text>}
+                                    {showLabel && <text x={p.x} y={svgH - 4} className="dark:fill-zinc-600 fill-gray-400" style={{ fontSize: '5px' }} textAnchor="middle">{dayLabel}</text>}
                                     {isToday && <text x={p.x} y={p.y - 7} className="fill-emerald-400" style={{ fontSize: '6px' }} textAnchor="middle" fontWeight="600">{p.d.calories}</text>}
                                   </g>
                                 );
@@ -1972,29 +1982,29 @@ export default function TrackFitApp() {
                 {insightSubTab === 'weight' && (
                   <div className="space-y-4">
                     {/* Today's weight card */}
-                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl">
+                    <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
                       <CardHeader className="py-3 px-4 pb-2">
-                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300"><Scale className="h-4 w-4 text-violet-400" />Today's Entry</div>
+                        <div className="text-sm font-semibold flex items-center gap-2 dark:text-zinc-300 text-gray-700"><Scale className="h-4 w-4 text-violet-400" />Today's Entry</div>
                       </CardHeader>
                       <CardContent className="px-4 pb-4">
                         {weightLog ? (
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="text-2xl font-bold text-violet-300">
-                                {displayWeight(weightLog.weight)} <span className="text-sm text-zinc-500 font-normal">{weightUnit}</span>
+                                {displayWeight(weightLog.weight)} <span className="text-sm dark:text-zinc-500 text-gray-500 font-normal">{weightUnit}</span>
                               </div>
                               {weightLog.bodyFat !== undefined && weightLog.bodyFat !== null && (
-                                <div className="text-xs text-zinc-500 mt-1">Body Fat: {weightLog.bodyFat}%</div>
+                                <div className="text-xs dark:text-zinc-500 text-gray-500 mt-1">Body Fat: {weightLog.bodyFat}%</div>
                               )}
                               {getFilteredWeightHistory.length >= 2 && (() => { const prev = getFilteredWeightHistory[getFilteredWeightHistory.length - 2]?.weight; if (!prev) return null; const d = weightLog.weight - prev; const absD = Math.abs(weightUnit === 'lbs' ? d * 2.20462 : d); return <div className={`text-xs font-semibold mt-1 ${d > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>{d > 0 ? '▲' : '▼'} {absD.toFixed(1)} {weightUnit} vs prev</div> })()}
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-600 hover:text-red-400 shrink-0" onClick={() => { setWeightLog(null); setWeightFormValue(0); setBodyFatFormValue(''); }}><X className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 dark:text-zinc-600 text-gray-400 hover:text-red-400 shrink-0" onClick={() => { setWeightLog(null); setWeightFormValue(0); setBodyFatFormValue(''); }}><X className="h-4 w-4" /></Button>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-3">
                             <div className="flex gap-2">
-                              <Input type="number" step="0.1" placeholder={`Weight (${weightUnit})`} value={weightFormValue || ''} onChange={e => setWeightFormValue(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-sm h-9 flex-1" />
-                              <Input type="number" step="0.1" placeholder="Fat %" value={bodyFatFormValue || ''} onChange={e => setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="bg-[#181822] border-[#242436] text-sm h-9 w-24 text-center" />
+                              <Input type="number" step="0.1" placeholder={`Weight (${weightUnit})`} value={weightFormValue || ''} onChange={e => setWeightFormValue(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-sm h-9 flex-1" />
+                              <Input type="number" step="0.1" placeholder="Fat %" value={bodyFatFormValue || ''} onChange={e => setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-sm h-9 w-24 text-center" />
                             </div>
                             <Button className="bg-violet-600 hover:bg-violet-500 text-white h-9 w-full text-sm" onClick={handleLogWeight}>Log Entry</Button>
                           </div>
@@ -2009,34 +2019,34 @@ export default function TrackFitApp() {
                       const maxW = weightUnit === 'lbs' ? Math.max(...getFilteredWeightHistory.map(w => w.weight)) * 2.20462 : Math.max(...getFilteredWeightHistory.map(w => w.weight));
                       return (
                         <div className="grid grid-cols-3 gap-2">
-                          <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
-                            <span className="text-zinc-500 text-[11px] uppercase font-bold block">Current</span>
+                          <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-xl p-3 text-center">
+                            <span className="dark:text-zinc-500 text-gray-500 text-[11px] uppercase font-bold block">Current</span>
                             <h4 className="text-base font-bold text-white mt-0.5">{current.toFixed(1)}</h4>
-                            <span className="text-[10px] text-zinc-600">{weightUnit}</span>
+                            <span className="text-[10px] dark:text-zinc-600 text-gray-400">{weightUnit}</span>
                           </Card>
-                          <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
-                            <span className="text-zinc-500 text-[11px] uppercase font-bold block">Low</span>
+                          <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-xl p-3 text-center">
+                            <span className="dark:text-zinc-500 text-gray-500 text-[11px] uppercase font-bold block">Low</span>
                             <h4 className="text-base font-bold text-emerald-400 mt-0.5">{minW.toFixed(1)}</h4>
-                            <span className="text-[10px] text-zinc-600">{weightUnit}</span>
+                            <span className="text-[10px] dark:text-zinc-600 text-gray-400">{weightUnit}</span>
                           </Card>
-                          <Card className="bg-[#111116] border-[#222231]/80 rounded-xl p-3 text-center">
-                            <span className="text-zinc-500 text-[11px] uppercase font-bold block">High</span>
+                          <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-xl p-3 text-center">
+                            <span className="dark:text-zinc-500 text-gray-500 text-[11px] uppercase font-bold block">High</span>
                             <h4 className="text-base font-bold text-orange-400 mt-0.5">{maxW.toFixed(1)}</h4>
-                            <span className="text-[10px] text-zinc-600">{weightUnit}</span>
+                            <span className="text-[10px] dark:text-zinc-600 text-gray-400">{weightUnit}</span>
                           </Card>
                         </div>
                       );
                     })()}
 
                     {/* Trend chart */}
-                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
+                    <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
                       <CardHeader className="py-3 px-4 pb-1">
-                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300"><TrendingUp className="h-4 w-4 text-violet-400" />Trend</div>
-                        <CardDescription className="text-xs text-zinc-500">{getFilteredWeightHistory.length} entries · {weightUnit}</CardDescription>
+                        <div className="text-sm font-semibold flex items-center gap-2 dark:text-zinc-300 text-gray-700"><TrendingUp className="h-4 w-4 text-violet-400" />Trend</div>
+                        <CardDescription className="text-xs dark:text-zinc-500 text-gray-500">{getFilteredWeightHistory.length} entries · {weightUnit}</CardDescription>
                       </CardHeader>
                       <CardContent className="px-3 pb-4">
                         {getFilteredWeightHistory.length < 2 ? (
-                          <div className="text-center text-zinc-600 text-xs py-8 italic">Log weight on multiple days to see the trend.</div>
+                          <div className="text-center dark:text-zinc-600 text-gray-400 text-xs py-8 italic">Log weight on multiple days to see the trend.</div>
                         ) : (() => {
                           const data = getFilteredWeightHistory;
                           const vals = data.map(w => weightUnit === 'lbs' ? w.weight * 2.20462 : w.weight);
@@ -2071,8 +2081,8 @@ export default function TrackFitApp() {
                                 const v = (minV + p * range).toFixed(1);
                                 return (
                                   <g key={i}>
-                                    <line x1={padL} y1={y} x2={svgW - padR} y2={y} className="stroke-[#1b1b26]/40" strokeWidth="0.5" strokeDasharray={i === 0 ? '0' : '3,3'} />
-                                    <text x={padL - 4} y={y + 3} className="fill-zinc-600" style={{ fontSize: '5px' }} textAnchor="end">{v}</text>
+                                    <line x1={padL} y1={y} x2={svgW - padR} y2={y} className="dark:stroke-[#1b1b26] stroke-gray-200/40" strokeWidth="0.5" strokeDasharray={i === 0 ? '0' : '3,3'} />
+                                    <text x={padL - 4} y={y + 3} className="dark:fill-zinc-600 fill-gray-400" style={{ fontSize: '5px' }} textAnchor="end">{v}</text>
                                   </g>
                                 );
                               })}
@@ -2088,7 +2098,7 @@ export default function TrackFitApp() {
                                 return (
                                   <g key={i}>
                                     <circle cx={p.x} cy={p.y} r={isToday ? 3.5 : 2} className={isToday ? 'fill-emerald-400 stroke-[#0d0d12] stroke-2' : 'fill-violet-400/80'} />
-                                    {showDate && <text x={p.x} y={svgH - 4} className="fill-zinc-600" style={{ fontSize: '5px' }} textAnchor="middle">{shortDate}</text>}
+                                    {showDate && <text x={p.x} y={svgH - 4} className="dark:fill-zinc-600 fill-gray-400" style={{ fontSize: '5px' }} textAnchor="middle">{shortDate}</text>}
                                     {(isToday || i === 0 || i === pts.length - 1) && (
                                       <text x={p.x} y={p.y - 7} className={isToday ? 'fill-emerald-400' : 'fill-violet-400/70'} style={{ fontSize: '6px' }} textAnchor="middle" fontWeight="600">{p.v.toFixed(1)}</text>
                                     )}
@@ -2106,8 +2116,8 @@ export default function TrackFitApp() {
                 {/* ── Water ── */}
                 {insightSubTab === 'water' && (
                   <div className="space-y-4">
-                    <Card className="bg-[#0e1218] border-[#1a2530]/80 rounded-2xl">
-                      <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-3"><div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><Droplets className="h-4 w-4 text-sky-400" />Today's Hydration</div></CardHeader>
+                    <Card className="dark:bg-[#0e1218] bg-sky-50 dark:border-[#1a2530] border-gray-200/80 rounded-2xl">
+                      <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-3"><div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><Droplets className="h-4 w-4 text-sky-400" />Today's Hydration</div></CardHeader>
                       <CardContent className="px-3 sm:px-5 pb-5 space-y-4">
                         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                           {/* Ring */}
@@ -2119,11 +2129,11 @@ export default function TrackFitApp() {
                             </svg>
                             <div className="absolute flex flex-col items-center text-center">
                               <span className="text-lg font-extrabold text-sky-300">{(totalWater / 1000).toFixed(1)}</span>
-                              <span className="text-[10px] lg:text-xs text-zinc-500">/{(waterGoalMl / 1000).toFixed(1)}L</span>
+                              <span className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500">/{(waterGoalMl / 1000).toFixed(1)}L</span>
                             </div>
                           </div>
                           <div className="flex-1 space-y-2 w-full">
-                            <p className="text-xs lg:text-sm text-zinc-400 font-semibold">Quick Add</p>
+                            <p className="text-xs lg:text-sm dark:text-zinc-400 text-gray-500 font-semibold">Quick Add</p>
                             <div className="grid grid-cols-3 sm:grid-cols-2 gap-1.5">
                               {[150, 250, 350, 500, 750, 1000].map(ml => (
                                 <button key={ml} onClick={() => handleLogWater(ml)} className="bg-sky-950/40 border border-sky-900/50 text-sky-300 text-xs py-1.5 rounded-xl hover:bg-sky-900/40 cursor-pointer font-semibold">+{ml}ml</button>
@@ -2132,9 +2142,9 @@ export default function TrackFitApp() {
                             {/* Custom amount */}
                             {showCustomWater ? (
                               <div className="flex gap-1.5">
-                                <Input type="number" min={50} max={2000} step={50} value={customWaterMl || ''} onChange={e => setCustomWaterMl(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8 flex-1 text-center" />
+                                <Input type="number" min={50} max={2000} step={50} value={customWaterMl || ''} onChange={e => setCustomWaterMl(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8 flex-1 text-center" />
                                 <button onClick={() => { handleLogWater(customWaterMl); setShowCustomWater(false); }} className="bg-sky-700/40 border border-sky-700/50 text-sky-300 text-xs px-3 rounded-lg hover:bg-sky-700/60 cursor-pointer">+</button>
-                                <button onClick={() => setShowCustomWater(false)} className="text-zinc-500 text-xs px-2 cursor-pointer">✕</button>
+                                <button onClick={() => setShowCustomWater(false)} className="dark:text-zinc-500 text-gray-500 text-xs px-2 cursor-pointer">✕</button>
                               </div>
                             ) : (
                               <button onClick={() => setShowCustomWater(true)} className="text-sm lg:text-base text-sky-400/70 hover:text-sky-400 cursor-pointer">+ Custom amount</button>
@@ -2143,12 +2153,12 @@ export default function TrackFitApp() {
                         </div>
 
                         {waterLogs.length > 0 && (
-                          <div className="border-t border-[#1a2530]/60 pt-3 space-y-1.5">
-                            <p className="text-xs lg:text-sm text-zinc-500 uppercase font-bold mb-2">Today's Log</p>
+                          <div className="border-t dark:border-[#1a2530] border-gray-200/60 pt-3 space-y-1.5">
+                            <p className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 uppercase font-bold mb-2">Today's Log</p>
                             {waterLogs.map((w) => (
                               <div key={w.id} className="flex items-center justify-between py-1">
-                                <div className="flex items-center gap-2"><Droplets className="h-3 w-3 text-sky-500" /><span className="text-zinc-300 text-xs lg:text-sm">{w.amount}ml</span></div>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-600 hover:text-red-400" onClick={() => handleDeleteWater(w.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                <div className="flex items-center gap-2"><Droplets className="h-3 w-3 text-sky-500" /><span className="dark:text-zinc-300 text-gray-700 text-xs lg:text-sm">{w.amount}ml</span></div>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 dark:text-zinc-600 text-gray-400 hover:text-red-400" onClick={() => handleDeleteWater(w.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                               </div>
                             ))}
                           </div>
@@ -2157,14 +2167,14 @@ export default function TrackFitApp() {
                     </Card>
 
                     {/* Water Bar Chart */}
-                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
+                    <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
                       <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-2">
-                        <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><BarChart3 className="h-4 w-4 text-sky-400" />Water Trend</div>
-                        <CardDescription className="text-xs lg:text-sm text-zinc-500">{getFilteredWaterHistory.length} days · goal: {waterGoalMl}ml</CardDescription>
+                        <div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><BarChart3 className="h-4 w-4 text-sky-400" />Water Trend</div>
+                        <CardDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">{getFilteredWaterHistory.length} days · goal: {waterGoalMl}ml</CardDescription>
                       </CardHeader>
                       <CardContent className="px-3 sm:px-4 pb-5">
                         {getFilteredWaterHistory.length === 0 ? (
-                          <div className="text-center text-zinc-600 text-xs lg:text-sm py-8 italic">No water history yet.</div>
+                          <div className="text-center dark:text-zinc-600 text-gray-400 text-xs lg:text-sm py-8 italic">No water history yet.</div>
                         ) : (() => {
                           const data = getFilteredWaterHistory;
                           const maxW = Math.max(...data.map(w => w.amount), waterGoalMl);
@@ -2188,7 +2198,7 @@ export default function TrackFitApp() {
                                         <div className="flex-1 flex items-end w-full">
                                           <div className={`w-full rounded-t-sm transition-all duration-300 ${isToday ? 'bg-sky-300' : isGoal ? 'bg-sky-500/70' : 'bg-sky-800/60'}`} style={{ height: `${pct}%`, minHeight: 2 }} />
                                         </div>
-                                        <span className="text-[6px] text-zinc-600 mt-1 leading-none" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: 20 }}>
+                                        <span className="text-[6px] dark:text-zinc-600 text-gray-400 mt-1 leading-none" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: 20 }}>
                                           {showDate ? shortDate : ''}
                                         </span>
                                       </div>
@@ -2196,7 +2206,7 @@ export default function TrackFitApp() {
                                   })}
                                 </div>
                               </div>
-                              <div className="flex justify-between text-[10px] lg:text-xs text-zinc-600 mt-1">
+                              <div className="flex justify-between text-[10px] lg:text-xs dark:text-zinc-600 text-gray-400 mt-1">
                                 <span className="text-sky-600/80">— goal: {waterGoalMl}ml</span>
                                 <span className="text-sky-300">■ today</span>
                                 <span className="text-sky-500/70">■ met</span>
@@ -2214,8 +2224,8 @@ export default function TrackFitApp() {
                           { l: 'Avg', v: `${(getFilteredWaterHistory.reduce((s, w) => s + w.amount, 0) / getFilteredWaterHistory.length / 1000).toFixed(2)}L` },
                           { l: 'Goal %', v: `${Math.round((totalWater / waterGoalMl) * 100)}%` },
                         ].map(s => (
-                          <Card key={s.l} className="bg-[#111116] border-[#222231]/80 rounded-xl p-2 sm:p-3 text-center">
-                            <span className="text-zinc-500 text-[10px] lg:text-xs uppercase font-bold block">{s.l}</span>
+                          <Card key={s.l} className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-xl p-2 sm:p-3 text-center">
+                            <span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs uppercase font-bold block">{s.l}</span>
                             <h4 className="text-sm font-extrabold text-white mt-0.5">{s.v}</h4>
                           </Card>
                         ))}
@@ -2228,22 +2238,22 @@ export default function TrackFitApp() {
                 {insightSubTab === 'workouts' && (
                   <div className="space-y-4">
                     {/* Timer card */}
-                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl">
+                    <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
                       <CardHeader className="py-3 px-4 pb-2">
-                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300">
+                        <div className="text-sm font-semibold flex items-center gap-2 dark:text-zinc-300 text-gray-700">
                           <Dumbbell className="h-4 w-4 text-emerald-400" />
                           Workout Timer
                         </div>
-                        <CardDescription className="text-xs text-zinc-500">{activeDate}</CardDescription>
+                        <CardDescription className="text-xs dark:text-zinc-500 text-gray-500">{activeDate}</CardDescription>
                       </CardHeader>
                       <CardContent className="px-4 pb-4 space-y-4">
                         {/* Timer display */}
                         <div className="flex flex-col items-center gap-3 py-4">
-                          <div className={`text-4xl font-mono font-bold tracking-wider ${workoutTimerRunning ? 'text-emerald-400' : 'text-zinc-300'}`}>
+                          <div className={`text-4xl font-mono font-bold tracking-wider ${workoutTimerRunning ? 'text-emerald-400' : 'dark:text-zinc-300 text-gray-700'}`}>
                             {String(Math.floor(workoutTimerSeconds / 3600)).padStart(2, '0')}:{String(Math.floor((workoutTimerSeconds % 3600) / 60)).padStart(2, '0')}:{String(workoutTimerSeconds % 60).padStart(2, '0')}
                           </div>
                           {workoutTimerRunning && workoutTimerStart && (
-                            <span className="text-[10px] text-zinc-500">Started at {workoutTimerStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-[10px] dark:text-zinc-500 text-gray-500">Started at {workoutTimerStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           )}
                         </div>
 
@@ -2267,7 +2277,7 @@ export default function TrackFitApp() {
                           {workoutTimerSeconds > 0 && (
                             <button
                               onClick={() => { setWorkoutTimerRunning(false); setWorkoutTimerSeconds(0); setWorkoutTimerStart(null); setSessionNotes(''); }}
-                              className="px-4 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-semibold text-sm transition-all btn-press"
+                              className="px-4 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 dark:text-zinc-400 text-gray-500 font-semibold text-sm transition-all btn-press"
                             >
                               Reset
                             </button>
@@ -2276,13 +2286,13 @@ export default function TrackFitApp() {
 
                         {/* Notes (optional) */}
                         <div className="space-y-1">
-                          <label className="text-[10px] text-zinc-500 uppercase font-bold">Notes (optional)</label>
+                          <label className="text-[10px] dark:text-zinc-500 text-gray-500 uppercase font-bold">Notes (optional)</label>
                           <input
                             type="text"
                             placeholder="e.g. Hit new PR on squats"
                             value={sessionNotes}
                             onChange={e => setSessionNotes(e.target.value)}
-                            className="w-full bg-[#181822] border border-[#242436] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                            className="w-full dark:bg-[#181822] bg-gray-100 border dark:border-[#242436] border-gray-300 rounded-lg px-3 py-2 text-xs dark:text-zinc-300 text-gray-700 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                           />
                         </div>
 
@@ -2298,10 +2308,10 @@ export default function TrackFitApp() {
                         )}
 
                         {/* Manual logging toggle */}
-                        <div className="pt-2 border-t border-[#222231]/50">
+                        <div className="pt-2 border-t dark:border-[#222231] border-gray-200/50">
                           <button
                             onClick={() => setShowManualForm(!showManualForm)}
-                            className="w-full py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                            className="w-full py-2 text-xs dark:text-zinc-500 text-gray-500 hover:dark:text-zinc-300 text-gray-700 transition-colors"
                           >
                             {showManualForm ? 'Hide manual entry' : '+ Log session manually instead'}
                           </button>
@@ -2311,23 +2321,23 @@ export default function TrackFitApp() {
                         {showManualForm && (
                           <div className="space-y-3 animate-fade-in-up">
                             <div className="space-y-1">
-                              <label className="text-[10px] text-zinc-500 uppercase font-bold">Duration (minutes)</label>
+                              <label className="text-[10px] dark:text-zinc-500 text-gray-500 uppercase font-bold">Duration (minutes)</label>
                               <input
                                 type="number"
                                 placeholder="e.g. 45"
                                 value={manualDuration || ''}
                                 onChange={e => setManualDuration(e.target.value === '' ? '' : Number(e.target.value))}
-                                className="w-full bg-[#181822] border border-[#242436] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                                className="w-full dark:bg-[#181822] bg-gray-100 border dark:border-[#242436] border-gray-300 rounded-lg px-3 py-2 text-xs dark:text-zinc-300 text-gray-700 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] text-zinc-500 uppercase font-bold">Notes (optional)</label>
+                              <label className="text-[10px] dark:text-zinc-500 text-gray-500 uppercase font-bold">Notes (optional)</label>
                               <input
                                 type="text"
                                 placeholder="e.g. Chest day, felt strong"
                                 value={manualNotes}
                                 onChange={e => setManualNotes(e.target.value)}
-                                className="w-full bg-[#181822] border border-[#242436] rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                                className="w-full dark:bg-[#181822] bg-gray-100 border dark:border-[#242436] border-gray-300 rounded-lg px-3 py-2 text-xs dark:text-zinc-300 text-gray-700 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                               />
                             </div>
                             <button
@@ -2343,32 +2353,32 @@ export default function TrackFitApp() {
                     </Card>
 
                     {/* Session history */}
-                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
+                    <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
                       <CardHeader className="py-3 px-4 pb-2">
-                        <div className="text-sm font-semibold flex items-center gap-2 text-zinc-300"><TrendingUp className="h-4 w-4 text-emerald-400" />Session Logs</div>
-                        <CardDescription className="text-xs text-zinc-500">{sessionLogsHistory.length} sessions this month</CardDescription>
+                        <div className="text-sm font-semibold flex items-center gap-2 dark:text-zinc-300 text-gray-700"><TrendingUp className="h-4 w-4 text-emerald-400" />Session Logs</div>
+                        <CardDescription className="text-xs dark:text-zinc-500 text-gray-500">{sessionLogsHistory.length} sessions this month</CardDescription>
                       </CardHeader>
                       <CardContent className="px-3 pb-4">
                         {sessionLogsHistory.length === 0 ? (
-                          <div className="text-center text-zinc-600 text-xs py-8 italic">No workout sessions logged yet.</div>
+                          <div className="text-center dark:text-zinc-600 text-gray-400 text-xs py-8 italic">No workout sessions logged yet.</div>
                         ) : (
                           <div className="space-y-2 max-h-60 overflow-y-auto divide-y divide-[#1e1e2d] pr-1">
                             {sessionLogsHistory.map((s: any, i: number) => (
                               <div key={s.id || i} className="pt-2.5 first:pt-0 flex flex-col gap-1 text-sm">
-                                <div className="flex justify-between items-center text-zinc-300 font-medium">
+                                <div className="flex justify-between items-center dark:text-zinc-300 text-gray-700 font-medium">
                                   <span>{new Date(s.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                                   <div className="flex items-center gap-2">
                                     <span className="text-emerald-400 font-bold">{s.duration} min</span>
                                     <button
                                       onClick={() => handleDeleteSession(s.id)}
-                                      className="text-zinc-600 hover:text-red-400 transition-colors cursor-pointer"
+                                      className="dark:text-zinc-600 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </button>
                                   </div>
                                 </div>
                                 {s.notes && (
-                                  <div className="text-zinc-500 text-xs italic bg-[#151520] p-1.5 rounded-md border border-[#20202d]/60">{s.notes}</div>
+                                  <div className="dark:text-zinc-500 text-gray-500 text-xs italic dark:bg-[#151520] bg-gray-50 p-1.5 rounded-md border dark:border-[#20202d] border-gray-200/60">{s.notes}</div>
                                 )}
                               </div>
                             ))}
@@ -2381,15 +2391,15 @@ export default function TrackFitApp() {
 
                 {/* Delete session confirmation dialog */}
                 <Dialog open={deleteSessionId !== null} onOpenChange={open => { if (!open) setDeleteSessionId(null); }}>
-                  <DialogContent className="bg-[#121219] border-[#222233] text-zinc-100 max-w-sm rounded-2xl p-5">
+                  <DialogContent className="bg-[#121219] dark:border-[#222233] border-gray-200 dark:text-zinc-100 text-gray-900 max-w-sm rounded-2xl p-5">
                     <DialogHeader>
                       <DialogTitle>Delete Session?</DialogTitle>
-                      <DialogDescription className="text-xs text-zinc-500">This action cannot be undone. The workout session will be permanently removed.</DialogDescription>
+                      <DialogDescription className="text-xs dark:text-zinc-500 text-gray-500">This action cannot be undone. The workout session will be permanently removed.</DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="pt-3 flex gap-2">
                       <button
                         onClick={() => setDeleteSessionId(null)}
-                        className="flex-1 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold text-sm transition-all btn-press"
+                        className="flex-1 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 dark:text-zinc-300 text-gray-700 font-semibold text-sm transition-all btn-press"
                       >
                         Cancel
                       </button>
@@ -2438,22 +2448,22 @@ export default function TrackFitApp() {
 
                   return (
                     <div className="space-y-4">
-                      <Card className="bg-[#0e0e14] border-[#1d1d2b] rounded-2xl p-3 sm:p-4">
+                      <Card className="dark:bg-[#0e0e14] bg-gray-50 dark:border-[#1d1d2b] border-gray-200 rounded-2xl p-3 sm:p-4">
                         <div className="flex justify-between items-center mb-3">
-                          <button onClick={handlePrevMonth} className="p-1.5 text-zinc-400 hover:text-zinc-200 cursor-pointer font-bold">◀</button>
-                          <span className="font-extrabold text-xs sm:text-sm text-zinc-200">{monthName}</span>
-                          <button onClick={handleNextMonth} className="p-1.5 text-zinc-400 hover:text-zinc-200 cursor-pointer font-bold">▶</button>
+                          <button onClick={handlePrevMonth} className="p-1.5 dark:text-zinc-400 text-gray-500 hover:dark:text-zinc-200 text-gray-800 cursor-pointer font-bold">◀</button>
+                          <span className="font-extrabold text-xs sm:text-sm dark:text-zinc-200 text-gray-800">{monthName}</span>
+                          <button onClick={handleNextMonth} className="p-1.5 dark:text-zinc-400 text-gray-500 hover:dark:text-zinc-200 text-gray-800 cursor-pointer font-bold">▶</button>
                         </div>
 
                         {/* Legend */}
-                        <div className="flex justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs lg:text-sm text-zinc-500 pb-3 border-b border-[#1c1c2b] mb-3">
+                        <div className="flex justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs lg:text-sm dark:text-zinc-500 text-gray-500 pb-3 border-b border-[#1c1c2b] mb-3">
                           <span className="flex items-center gap-1">🍏 Diet</span>
                           <span className="flex items-center gap-1">💧 Water</span>
                           <span className="flex items-center gap-1">🏋️ Lifted</span>
                         </div>
 
                         {/* Weekday Labels */}
-                        <div className="grid grid-cols-7 text-center text-[10px] sm:text-xs lg:text-sm text-zinc-600 font-semibold mb-1">
+                        <div className="grid grid-cols-7 text-center text-[10px] sm:text-xs lg:text-sm dark:text-zinc-600 text-gray-400 font-semibold mb-1">
                           <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
                         </div>
 
@@ -2478,8 +2488,8 @@ export default function TrackFitApp() {
                                 className={`h-9 sm:h-11 flex flex-col justify-between items-center p-0.5 sm:p-1 rounded-lg sm:rounded-xl cursor-pointer transition-all border text-[9px] sm:text-[10px] lg:text-xs ${isActive
                                     ? 'bg-[#18182c] border-indigo-500 shadow-md text-indigo-300 font-bold'
                                     : isToday
-                                      ? 'bg-[#121219] border-zinc-500 text-zinc-100 font-bold'
-                                      : 'bg-[#14141d]/50 hover:bg-[#1a1a29]/70 border-[#222234]/40 text-zinc-400'
+                                      ? 'bg-[#121219] border-zinc-500 dark:text-zinc-100 text-gray-900 font-bold'
+                                      : 'bg-[#14141d]/50 hover:bg-[#1a1a29]/70 border-[#222234]/40 dark:text-zinc-400 text-gray-500'
                                   }`}
                               >
                                 <span className="leading-tight">{dayNum}</span>
@@ -2500,10 +2510,10 @@ export default function TrackFitApp() {
                 {/* ── Body Heatmap ── */}
                 {insightSubTab === 'body' && (
                   <div className="animate-fade-in-up">
-                    <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl overflow-hidden">
+                    <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
                       <CardHeader className="py-3 sm:py-4 px-3 sm:px-5 pb-2">
-                        <div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><Activity className="h-4 w-4 text-emerald-400" />Muscle Training Heatmap</div>
-                        <CardDescription className="text-xs lg:text-sm text-zinc-500">See which muscle groups you've been training most</CardDescription>
+                        <div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><Activity className="h-4 w-4 text-emerald-400" />Muscle Training Heatmap</div>
+                        <CardDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">See which muscle groups you've been training most</CardDescription>
                       </CardHeader>
                       <CardContent className="px-3 sm:px-5 pb-5">
                         <BodyHeatmap workoutLogs={filteredWorkoutLogsForHeatmap} />
@@ -2518,17 +2528,44 @@ export default function TrackFitApp() {
             {activeTab === 'settings' && (
               <div className="space-y-4 text-xs lg:text-sm lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:items-start">
 
+                {/* Theme Toggle */}
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
+                  <CardHeader className="py-4 px-5">
+                    <div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700">
+                      {isDark ? <Moon className="h-4 w-4 text-indigo-400" /> : <Sun className="h-4 w-4 text-amber-500" />}
+                      Appearance
+                    </div>
+                    <CardDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Switch between dark and light theme.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="px-5 pb-5">
+                    <button
+                      onClick={() => setIsDark(!isDark)}
+                      className={`w-full py-3 rounded-xl font-semibold text-sm transition-all btn-press flex items-center justify-center gap-2 ${
+                        isDark
+                          ? 'bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-700/40 text-indigo-300'
+                          : 'bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-800'
+                      }`}
+                    >
+                      {isDark ? (
+                        <><Sun className="h-4 w-4" /> Switch to Light Mode</>
+                      ) : (
+                        <><Moon className="h-4 w-4" /> Switch to Dark Mode</>
+                      )}
+                    </button>
+                  </CardContent>
+                </Card>
+
                 {/* Database */}
-                <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl">
-                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><Database className="h-4 w-4 text-indigo-400" />Database</div><CardDescription className="text-xs lg:text-sm text-zinc-500">Manage your Postgres connection.</CardDescription></CardHeader>
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
+                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><Database className="h-4 w-4 text-indigo-400" />Database</div><CardDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Manage your Postgres connection.</CardDescription></CardHeader>
                   <CardContent className="px-5 pb-5 space-y-3">
                     <div className={`rounded-lg p-3 text-sm lg:text-base flex items-start gap-2 ${isDemoMode ? 'bg-amber-950/20 border border-amber-800/40 text-amber-300' : 'bg-indigo-950/20 border border-indigo-900/40 text-indigo-400'}`}>
-                      <Check className="h-4 w-4 shrink-0 mt-0.5" /><div><span className="font-bold">{isDemoMode ? 'Local Storage (Browser)' : 'PostgreSQL Connected'}</span><p className="text-zinc-400 mt-0.5 text-xs lg:text-sm">{isDemoMode ? '⚠️ Clearing browser data will erase all logs permanently.' : 'Data synced to your private database.'}</p></div>
+                      <Check className="h-4 w-4 shrink-0 mt-0.5" /><div><span className="font-bold">{isDemoMode ? 'Local Storage (Browser)' : 'PostgreSQL Connected'}</span><p className="dark:text-zinc-400 text-gray-500 mt-0.5 text-xs lg:text-sm">{isDemoMode ? '⚠️ Clearing browser data will erase all logs permanently.' : 'Data synced to your private database.'}</p></div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs lg:text-sm text-zinc-500 uppercase font-semibold tracking-wider">Connection String</Label>
-                      <Input type="text" value={dbConn} onChange={e => setDbConn(e.target.value)} placeholder="postgresql://user:pass@127.0.0.1:5432/dbname" className="bg-[#181822] border-[#242436] text-sm lg:text-base h-9" />
-                      <p className="text-xs lg:text-sm text-zinc-600 flex items-center gap-1"><Info className="h-3 w-3" />WSL: use <code className="text-indigo-400 mx-1">127.0.0.1</code> not <code className="text-indigo-400 mx-1">localhost</code></p>
+                      <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 uppercase font-semibold tracking-wider">Connection String</Label>
+                      <Input type="text" value={dbConn} onChange={e => setDbConn(e.target.value)} placeholder="postgresql://user:pass@127.0.0.1:5432/dbname" className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-sm lg:text-base h-9" />
+                      <p className="text-xs lg:text-sm dark:text-zinc-600 text-gray-400 flex items-center gap-1"><Info className="h-3 w-3" />WSL: use <code className="text-indigo-400 mx-1">127.0.0.1</code> not <code className="text-indigo-400 mx-1">localhost</code></p>
                     </div>
                     {dbError && <div className="rounded-lg bg-red-950/40 border border-red-900/60 p-3 text-sm lg:text-base text-red-400 flex items-start gap-2"><AlertCircle className="h-4 w-4 mt-0.5 shrink-0" /><span>{dbError}</span></div>}
                     <div className="flex gap-2">
@@ -2539,13 +2576,13 @@ export default function TrackFitApp() {
                 </Card>
 
                 {/* AI Settings */}
-                <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl">
-                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><Brain className="h-4 w-4 text-indigo-400" />AI Settings</div><CardDescription className="text-xs lg:text-sm text-zinc-500">Add your OpenAI key for AI-powered "Should I Eat?" recommendations.</CardDescription></CardHeader>
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
+                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><Brain className="h-4 w-4 text-indigo-400" />AI Settings</div><CardDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Add your OpenAI key for AI-powered "Should I Eat?" recommendations.</CardDescription></CardHeader>
                   <CardContent className="px-5 pb-5 space-y-3">
                     <div className="space-y-1">
-                      <Label className="text-xs lg:text-sm text-zinc-500 uppercase font-semibold tracking-wider">OpenAI API Key</Label>
-                      <Input type="password" value={openAiKey} onChange={e => setOpenAiKey(e.target.value)} placeholder="sk-proj-..." className="bg-[#181822] border-[#242436] text-sm lg:text-base h-9" />
-                      <p className="text-xs lg:text-sm text-zinc-600 flex items-start gap-1"><Info className="h-3 w-3 mt-0.5 shrink-0" />Your key is stored only in your browser's local storage and never sent anywhere except directly to OpenAI.</p>
+                      <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 uppercase font-semibold tracking-wider">OpenAI API Key</Label>
+                      <Input type="password" value={openAiKey} onChange={e => setOpenAiKey(e.target.value)} placeholder="sk-proj-..." className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-sm lg:text-base h-9" />
+                      <p className="text-xs lg:text-sm dark:text-zinc-600 text-gray-400 flex items-start gap-1"><Info className="h-3 w-3 mt-0.5 shrink-0" />Your key is stored only in your browser's local storage and never sent anywhere except directly to OpenAI.</p>
                     </div>
                     {openAiKey && <div className="p-2 bg-emerald-950/20 border border-emerald-900/40 rounded-lg text-sm lg:text-base text-emerald-400 flex items-center gap-1.5"><Check className="h-3.5 w-3.5" />API key saved locally</div>}
                     <Button className="w-full bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-600/40 text-indigo-300 text-xs h-9" onClick={() => safeLocalSet('trackfit_openai_key', openAiKey)} disabled={!openAiKey}>Save Key</Button>
@@ -2554,38 +2591,38 @@ export default function TrackFitApp() {
                 </Card>
 
                 {/* Wellness */}
-                <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl">
-                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><Droplets className="h-4 w-4 text-sky-400" />Wellness Settings</div><CardDescription className="text-xs lg:text-sm text-zinc-500">Weight unit & water goal preferences.</CardDescription></CardHeader>
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
+                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><Droplets className="h-4 w-4 text-sky-400" />Wellness Settings</div><CardDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Weight unit & water goal preferences.</CardDescription></CardHeader>
                   <CardContent className="px-5 pb-5 space-y-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs lg:text-sm text-zinc-500 uppercase font-semibold tracking-wider">Weight Unit</Label>
+                      <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 uppercase font-semibold tracking-wider">Weight Unit</Label>
                       <div className="flex gap-2">
                         {(['kg', 'lbs'] as const).map(u => (
-                          <button key={u} onClick={() => { setWeightUnit(u); safeLocalSet('trackfit_weight_unit', u); }} className={`flex-1 py-2 rounded-lg border text-sm font-semibold cursor-pointer transition-colors ${weightUnit === u ? 'bg-violet-600/20 border-violet-500/50 text-violet-300' : 'bg-[#181822] border-[#242436] text-zinc-400 hover:text-zinc-200'}`}>{u}</button>
+                          <button key={u} onClick={() => { setWeightUnit(u); safeLocalSet('trackfit_weight_unit', u); }} className={`flex-1 py-2 rounded-lg border text-sm font-semibold cursor-pointer transition-colors ${weightUnit === u ? 'bg-violet-600/20 border-violet-500/50 text-violet-300' : 'dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 dark:text-zinc-400 text-gray-500 hover:dark:text-zinc-200 text-gray-800'}`}>{u}</button>
                         ))}
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs lg:text-sm text-zinc-500 uppercase font-semibold tracking-wider">Daily Water Goal (ml)</Label>
+                      <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 uppercase font-semibold tracking-wider">Daily Water Goal (ml)</Label>
                       <div className="flex gap-2">
-                        <Input type="number" value={waterGoalMl || ''} onChange={e => setWaterGoalMl(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-9 flex-1" step={250} min={500} max={6000} />
+                        <Input type="number" value={waterGoalMl || ''} onChange={e => setWaterGoalMl(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-9 flex-1" step={250} min={500} max={6000} />
                         <Button className="bg-sky-700/40 hover:bg-sky-700/60 text-sky-300 border border-sky-700/50 text-xs h-9" onClick={() => safeLocalSet('trackfit_water_goal', String(waterGoalMl))}><Check className="h-3.5 w-3.5" /></Button>
                       </div>
                       <div className="flex gap-1.5">
-                        {[1500, 2000, 2500, 3000].map(ml => <button key={ml} onClick={() => { setWaterGoalMl(ml); safeLocalSet('trackfit_water_goal', String(ml)); }} className="text-xs lg:text-sm bg-[#171720] border border-[#242436] text-zinc-400 px-2 py-1 rounded-lg hover:text-sky-300 hover:border-sky-900/60 cursor-pointer">{ml}ml</button>)}
+                        {[1500, 2000, 2500, 3000].map(ml => <button key={ml} onClick={() => { setWaterGoalMl(ml); safeLocalSet('trackfit_water_goal', String(ml)); }} className="text-xs lg:text-sm bg-[#171720] border dark:border-[#242436] border-gray-300 dark:text-zinc-400 text-gray-500 px-2 py-1 rounded-lg hover:text-sky-300 hover:border-sky-900/60 cursor-pointer">{ml}ml</button>)}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Nutrition Goals */}
-                <Card className="bg-[#111116] border-[#222231]/80 rounded-2xl">
-                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 text-zinc-300"><SettingsIcon className="h-4 w-4 text-indigo-400" />Nutrition Targets</div><CardDescription className="text-xs lg:text-sm text-zinc-500">Update your daily nutritional goals.</CardDescription></CardHeader>
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
+                  <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><SettingsIcon className="h-4 w-4 text-indigo-400" />Nutrition Targets</div><CardDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Update your daily nutritional goals.</CardDescription></CardHeader>
                   <CardContent className="px-5 pb-5 space-y-3">
-                    <div className="space-y-1"><Label className="text-xs lg:text-sm text-zinc-500">Daily Calories (kcal)</Label><Input type="number" value={goalFormCalories || ''} onChange={e => setGoalFormCalories(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" /></div>
+                    <div className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Daily Calories (kcal)</Label><Input type="number" value={goalFormCalories || ''} onChange={e => setGoalFormCalories(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
                     <div className="grid grid-cols-2 gap-2">
                       {[{ l: 'Protein (g)', v: goalFormProtein, s: setGoalFormProtein }, { l: 'Carbs (g)', v: goalFormCarbs, s: setGoalFormCarbs }, { l: 'Fiber (g)', v: goalFormFiber, s: setGoalFormFiber }, { l: 'Fat (g)', v: goalFormFat, s: setGoalFormFat }].map(f => (
-                        <div key={f.l} className="space-y-1"><Label className="text-xs lg:text-sm text-zinc-500">{f.l}</Label><Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="bg-[#181822] border-[#242436] text-xs lg:text-sm h-8" /></div>
+                        <div key={f.l} className="space-y-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">{f.l}</Label><Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8" /></div>
                       ))}
                     </div>
                     <Button className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs h-9 rounded-lg" onClick={handleUpdateGoals}>Save Goals</Button>
@@ -2607,7 +2644,7 @@ export default function TrackFitApp() {
           { tab: 'insights' as TabId, icon: BarChart3, label: 'Insights' },
           { tab: 'settings' as TabId, icon: SettingsIcon, label: 'Settings' },
         ]).map(({ tab, icon: Icon, label }) => (
-          <button key={tab} className={`flex flex-col items-center gap-1.5 text-xs lg:text-sm font-medium transition-all cursor-pointer ${activeTab === tab ? 'text-indigo-400 scale-[1.05]' : 'text-zinc-500 hover:text-zinc-300'}`} onClick={() => setActiveTab(tab)}>
+          <button key={tab} className={`flex flex-col items-center gap-1.5 text-xs lg:text-sm font-medium transition-all cursor-pointer ${activeTab === tab ? 'text-indigo-400 scale-[1.05]' : 'dark:text-zinc-500 text-gray-500 hover:dark:text-zinc-300 text-gray-700'}`} onClick={() => setActiveTab(tab)}>
             <Icon className="h-5 w-5" /><span>{label}</span>
           </button>
         ))}

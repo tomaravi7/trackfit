@@ -88,8 +88,8 @@ export function BodyHeatmap({ workoutLogs }: BodyHeatmapProps) {
             })}
           </defs>
 
-          <ellipse cx="150" cy="26" rx="18" ry="22" fill="rgba(113, 113, 122, 0.12)" />
-          <path d="M122 46 Q135 40 150 38 Q165 40 178 46 L182 56 L176 62 L176 96 L182 104 L182 162 L174 168 L174 224 L166 258 L160 278 L154 278 L150 260 L146 278 L140 278 L134 258 L126 224 L126 168 L118 162 L118 104 L124 96 L124 62 L118 56 Z" fill="rgba(113, 113, 122, 0.08)" />
+          <ellipse cx="150" cy="26" rx="18" ry="22" fill="rgba(113, 113, 122, 0.15)" />
+          <path d="M122 46 Q135 40 150 38 Q165 40 178 46 L182 56 L176 62 L176 96 L182 104 L182 162 L174 168 L174 224 L166 258 L160 278 L154 278 L150 260 L146 278 L140 278 L134 258 L126 224 L126 168 L118 162 L118 104 L124 96 L124 62 L118 56 Z" fill="rgba(113, 113, 122, 0.1)" />
 
           {muscles.map(m => {
             const isSelected = selectedMuscle === m.id;
