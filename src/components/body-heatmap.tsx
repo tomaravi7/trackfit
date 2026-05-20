@@ -73,7 +73,7 @@ export function BodyHeatmap({ workoutLogs }: BodyHeatmapProps) {
   function MuscleSVG({ muscles, label, sizeClass }: { muscles: typeof muscleScores; label: string; sizeClass: string }) {
     return (
       <div className="flex flex-col items-center gap-3">
-        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-semibold dark:text-zinc-400 text-gray-500 uppercase tracking-wider">{label}</span>
         <svg viewBox="0 0 300 280" className={sizeClass}>
           <defs>
             {muscles.map(m => {
@@ -144,7 +144,7 @@ export function BodyHeatmap({ workoutLogs }: BodyHeatmapProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-2 text-xs text-zinc-500">
+      <div className="flex items-center justify-center gap-2 text-xs dark:text-zinc-500 text-gray-500">
         <span>Less</span>
         <div className="flex gap-0.5">
           {['#1f1f2e', '#064e3b', '#047857', '#a16207', '#c2410c', '#dc2626'].map((c, i) => (
@@ -157,22 +157,22 @@ export function BodyHeatmap({ workoutLogs }: BodyHeatmapProps) {
       {/* Selected muscle exercises - smooth transition */}
       <div className={`overflow-hidden transition-all duration-300 ease-in-out ${selectedData ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
         {selectedData && (
-          <div className="p-4 bg-[#151520]/50 border border-[#212130]/50 rounded-xl">
+          <div className="p-4 dark:bg-[#151520]/50 bg-gray-50/50 border dark:border-[#212130]/50 border-gray-200/50 rounded-xl">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-3.5 h-3.5 rounded-sm" style={{ backgroundColor: getHeatFill(selectedData.score).base }} />
-              <span className="text-sm font-semibold text-zinc-200">{selectedData.name}</span>
-              <span className="text-xs text-zinc-500 ml-auto">{selectedData.totalSets} sets · {selectedData.totalVolume > 0 ? Math.round(selectedData.totalVolume).toLocaleString() : 0} kg</span>
+              <span className="text-sm font-semibold dark:text-zinc-200 text-gray-800">{selectedData.name}</span>
+              <span className="text-xs dark:text-zinc-500 text-gray-500 ml-auto">{selectedData.totalSets} sets · {selectedData.totalVolume > 0 ? Math.round(selectedData.totalVolume).toLocaleString() : 0} kg</span>
             </div>
             {selectedData.exercises.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {selectedData.exercises.map((ex, i) => (
-                  <span key={i} className="text-xs px-2.5 py-1 bg-indigo-950/40 border border-indigo-800/40 text-indigo-300 rounded-full">
+                  <span key={i} className="text-xs px-2.5 py-1 dark:bg-indigo-950/40 bg-indigo-50/40 border dark:border-indigo-800/40 border-indigo-200/40 dark:text-indigo-300 text-indigo-600 rounded-full">
                     {ex}
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-zinc-600 italic">No exercises logged for this muscle group yet.</p>
+              <p className="text-xs dark:text-zinc-600 text-gray-400 italic">No exercises logged for this muscle group yet.</p>
             )}
           </div>
         )}
@@ -183,7 +183,7 @@ export function BodyHeatmap({ workoutLogs }: BodyHeatmapProps) {
         const catMuscles = muscleScores.filter(m => m.category === cat).sort((a, b) => b.totalSets - a.totalSets);
         return (
           <div key={cat} className="space-y-2">
-            <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">{cat === 'upper' ? 'Upper Body' : 'Lower Body'}</span>
+            <span className="text-xs font-semibold dark:text-zinc-500 text-gray-500 uppercase tracking-wider">{cat === 'upper' ? 'Upper Body' : 'Lower Body'}</span>
             <div className="w-full grid grid-cols-2 gap-2">
               {catMuscles.map(m => (
                 <button
@@ -191,14 +191,14 @@ export function BodyHeatmap({ workoutLogs }: BodyHeatmapProps) {
                   onClick={() => handleMuscleClick(m.id)}
                   className={`flex items-center gap-2.5 p-2.5 rounded-lg border transition-all duration-200 btn-press ${
                     selectedMuscle === m.id
-                      ? 'bg-[#1a1a2e] border-indigo-700/50 ring-1 ring-indigo-500/20'
-                      : 'bg-[#151520]/30 border-[#212130]/40 hover:bg-[#1a1a28]'
+                      ? 'dark:bg-[#1a1a2e] bg-indigo-50 dark:border-indigo-700/50 border-indigo-300/50 ring-1 ring-indigo-500/20'
+                      : 'dark:bg-[#151520]/30 bg-gray-50/30 dark:border-[#212130]/40 border-gray-200/40 hover:dark:bg-[#1a1a28] bg-gray-100'
                   }`}
                 >
                   <div className="w-3.5 h-3.5 rounded-sm shrink-0" style={{ backgroundColor: getHeatFill(m.score).base }} />
                   <div className="min-w-0 flex-1 text-left">
-                    <span className="text-xs font-medium text-zinc-300">{m.name}</span>
-                    <span className="text-[11px] text-zinc-500 ml-1">{m.totalSets} sets</span>
+                    <span className="text-xs font-medium dark:text-zinc-300 text-gray-700">{m.name}</span>
+                    <span className="text-[11px] dark:text-zinc-500 text-gray-500 ml-1">{m.totalSets} sets</span>
                   </div>
                 </button>
               ))}
@@ -221,9 +221,9 @@ function MobileBodyView({ muscles, getHeatFill, selectedMuscle, handleMuscleClic
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="flex gap-2 bg-zinc-900/80 rounded-lg p-0.5 border border-zinc-800/50">
-        <button onClick={() => setView('front')} className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer btn-press ${view === 'front' ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>Front</button>
-        <button onClick={() => setView('back')} className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer btn-press ${view === 'back' ? 'bg-indigo-600 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>Back</button>
+      <div className="flex gap-2 dark:dark:bg-zinc-900/80 bg-gray-100/80 bg-gray-100/80 rounded-lg p-0.5 border dark:dark:border-zinc-800/50 border-gray-200/50 border-gray-200/50">
+        <button onClick={() => setView('front')} className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer btn-press ${view === 'front' ? 'dark:bg-indigo-600 dark:text-white bg-indigo-500 text-white' : 'dark:text-zinc-500 text-gray-500 hover:dark:text-zinc-300 text-gray-700'}`}>Front</button>
+        <button onClick={() => setView('back')} className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer btn-press ${view === 'back' ? 'dark:bg-indigo-600 dark:text-white bg-indigo-500 text-white' : 'dark:text-zinc-500 text-gray-500 hover:dark:text-zinc-300 text-gray-700'}`}>Back</button>
       </div>
       <svg viewBox="0 0 300 280" className="w-52 h-52 sm:w-60 sm:h-60">
         <defs>
