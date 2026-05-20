@@ -1462,7 +1462,7 @@ export default function TrackFitApp() {
                     <div className="flex gap-1.5 flex-wrap">
                       {[{ e: '🥪', n: 'Toastie', c: 340, p: 18, cb: 32, f: 12, fi: 2 }, { e: '🍪', n: 'Cookie', c: 220, p: 3, cb: 30, f: 10, fi: 1 }, { e: '🥛', n: 'Protein Shake', c: 250, p: 35, cb: 15, f: 4, fi: 0 }, { e: '🍫', n: 'Snickers', c: 250, p: 4, cb: 33, f: 12, fi: 1 }].map(pr => (
                         <button key={pr.n} onClick={() => { setSandName(`${pr.e} ${pr.n}`); setSandCalories(pr.c); setSandProtein(pr.p); setSandCarbs(pr.cb); setSandFat(pr.f); setSandFiber(pr.fi); setSandVerdict(null); setAiRecommendation(null); }}
-                          className="text-xs lg:text-sm bg-[#171720] border dark:border-[#242436] border-gray-300 dark:text-zinc-400 text-gray-500 px-2 py-1 rounded-full hover:text-white cursor-pointer">{pr.e} {pr.n}</button>
+                          className="text-xs lg:text-sm dark:bg-[#171720] dark:border-[#242436] dark:text-zinc-400 dark:hover:text-zinc-200 bg-gray-100 border-gray-200 text-gray-500 px-2 py-1 rounded-full hover:text-gray-700 cursor-pointer">{pr.e} {pr.n}</button>
                       ))}
                     </div>
 
@@ -1511,11 +1511,11 @@ export default function TrackFitApp() {
             {activeTab === 'food' && (
               <div className="space-y-4 text-xs lg:text-sm">
                 <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl p-4 flex justify-between items-center">
-                  <div><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs uppercase tracking-widest font-semibold">Total Consumed</span><h3 className="text-xl font-bold text-white mt-0.5">{Math.round(dailyTotals.calories)} kcal</h3></div>
+                  <div><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs uppercase tracking-widest font-semibold">Total Consumed</span><h3 className="text-xl font-bold dark:text-white text-gray-900 mt-0.5">{Math.round(dailyTotals.calories)} kcal</h3></div>
                   <div className="flex gap-4 border-l dark:border-[#222233] border-gray-200 pl-4 text-center">
                     <div><span className="dark:text-orange-400 text-orange-600 font-bold block">{Math.round(dailyTotals.protein)}g</span><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs">Protein</span></div>
                     <div><span className="dark:text-indigo-400 text-indigo-600 font-bold block">{Math.round(dailyTotals.carbs)}g</span><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs">Carbs</span></div>
-                    <div><span className="text-yellow-400 font-bold block">{Math.round(dailyTotals.fat)}g</span><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs">Fat</span></div>
+                    <div><span className="dark:text-yellow-400 text-yellow-600 font-bold block">{Math.round(dailyTotals.fat)}g</span><span className="dark:text-zinc-500 text-gray-500 text-[10px] lg:text-xs">Fat</span></div>
                   </div>
                 </Card>
 
@@ -2609,7 +2609,7 @@ export default function TrackFitApp() {
                         <Button className="bg-sky-700/40 hover:bg-sky-700/60 dark:text-sky-300 text-sky-700 border border-sky-700/50 text-xs h-9" onClick={() => safeLocalSet('trackfit_water_goal', String(waterGoalMl))}><Check className="h-3.5 w-3.5" /></Button>
                       </div>
                       <div className="flex gap-1.5">
-                        {[1500, 2000, 2500, 3000].map(ml => <button key={ml} onClick={() => { setWaterGoalMl(ml); safeLocalSet('trackfit_water_goal', String(ml)); }} className="text-xs lg:text-sm bg-[#171720] border dark:border-[#242436] border-gray-300 dark:text-zinc-400 text-gray-500 px-2 py-1 rounded-lg hover:dark:text-sky-300 text-sky-700 hover:border-sky-900/60 cursor-pointer">{ml}ml</button>)}
+                        {[1500, 2000, 2500, 3000].map(ml => <button key={ml} onClick={() => { setWaterGoalMl(ml); safeLocalSet('trackfit_water_goal', String(ml)); }} className="text-xs lg:text-sm dark:bg-[#171720] dark:border-[#242436] dark:text-zinc-400 dark:hover:text-sky-300 bg-gray-100 border-gray-200 text-gray-500 px-2 py-1 rounded-lg hover:text-sky-600 hover:border-sky-300 cursor-pointer">{ml}ml</button>)}
                       </div>
                     </div>
                   </CardContent>
