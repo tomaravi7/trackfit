@@ -1092,7 +1092,7 @@ export default function TrackFitApp() {
   const isWslError = dbError.toLowerCase().includes('econnrefused') && (dbError.includes('::1') || dbError.includes('localhost'));
 
   // ─── SVG Chart ────────────────────────────────────────────────────────────────
-  const CH = 130, CW = 340, CP = 30;
+  const CH = 110, CW = 300, CP = 28;
   const maxCal = Math.max(...historyData.map(d => Math.max(d.calories, d.target)), 1) * 1.15;
   const calPoints = historyData.length < 2 ? '' : historyData.map((d, i) => {
     const x = CP + (i * (CW - CP * 2)) / (historyData.length - 1);
@@ -1919,8 +1919,8 @@ export default function TrackFitApp() {
                       </CardHeader>
                       <CardContent className="px-3 pb-4">
                         {historyData.length < 2 ? <div className="text-center dark:text-zinc-600 text-gray-400 text-xs py-8 italic">Not enough data for chart.</div> : (() => {
-                          const svgW = 340, svgH = 140;
-                          const padL = 36, padR = 8, padT = 10, padB = 20;
+                          const svgW = 300, svgH = 120;
+                          const padL = 34, padR = 8, padT = 10, padB = 18;
                           const chartW = svgW - padL - padR;
                           const chartH = svgH - padT - padB;
                           const maxVal = Math.max(...historyData.map(d => Math.max(d.calories, d.target)), 1) * 1.12;
@@ -2053,8 +2053,8 @@ export default function TrackFitApp() {
                           const minV = Math.min(...vals);
                           const maxV = Math.max(...vals);
                           const range = maxV - minV || 1;
-                          const svgW = 340, svgH = 140;
-                          const padL = 40, padR = 10, padT = 16, padB = 20;
+                          const svgW = 300, svgH = 120;
+                          const padL = 38, padR = 10, padT = 14, padB = 18;
                           const chartW = svgW - padL - padR;
                           const chartH = svgH - padT - padB;
                           const pts = data.map((w, i) => {
@@ -2526,7 +2526,7 @@ export default function TrackFitApp() {
 
             {/* ══ SETTINGS ══ */}
             {activeTab === 'settings' && (
-              <div className="space-y-4 text-xs lg:text-sm lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0 lg:items-start">
+              <div className="space-y-4 text-xs lg:text-sm lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
 
                 {/* Theme Toggle */}
                 <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
