@@ -1191,7 +1191,7 @@ export default function TrackFitApp() {
   // ─── Time Frame Selector ──────────────────────────────────────────────────────
   const TimeFrameSelector = () => (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="flex gap-1 dark:bg-zinc-900/80 bg-gray-100/80 rounded-lg p-0.5 border border-zinc-800/50">
+      <div className="flex gap-1 dark:bg-zinc-900/80 dark:border-zinc-800/50 bg-gray-100/80 rounded-lg p-0.5 border border-gray-200/50">
         {(['7d', '14d', '30d', 'all', 'custom'] as TimeFrame[]).map(tf => (
           <button key={tf} onClick={() => setChartTimeFrame(tf)}
             className={`px-2.5 py-1 rounded-md text-sm lg:text-base font-semibold transition-all cursor-pointer ${chartTimeFrame === tf ? 'bg-indigo-600 text-white' : 'dark:text-zinc-500 text-gray-500 hover:dark:text-zinc-300 text-gray-700'}`}>
@@ -1202,10 +1202,10 @@ export default function TrackFitApp() {
       {chartTimeFrame === 'custom' && (
         <div className="flex items-center gap-2 animate-fade-in-up">
           <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)}
-            className="dark:bg-zinc-900/80 bg-gray-100/80 border border-zinc-700/50 rounded-lg px-2 py-1.5 text-xs dark:text-zinc-300 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
+            className="dark:bg-zinc-900/80 bg-gray-100/80 dark:border-zinc-700/50 border-gray-300 rounded-lg px-2 py-1.5 text-xs dark:text-zinc-300 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
           <span className="dark:text-zinc-600 text-gray-400 text-xs">→</span>
           <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)}
-            className="dark:bg-zinc-900/80 bg-gray-100/80 border border-zinc-700/50 rounded-lg px-2 py-1.5 text-xs dark:text-zinc-300 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
+            className="dark:bg-zinc-900/80 bg-gray-100/80 dark:border-zinc-700/50 border-gray-300 rounded-lg px-2 py-1.5 text-xs dark:text-zinc-300 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500/50" />
         </div>
       )}
     </div>
@@ -1284,7 +1284,7 @@ export default function TrackFitApp() {
           <SidebarNavItem tab="settings" icon={SettingsIcon} label="Settings" />
         </nav>
 
-        <div className={`px-3 py-2 rounded-xl text-xs lg:text-sm flex items-center gap-2 ${isDemoMode ? 'bg-amber-950/30 text-amber-400 border border-amber-800/40' : 'dark:bg-indigo-950/30 dark:dark:text-indigo-400 text-indigo-600 dark:border-indigo-900/40 bg-indigo-50 text-indigo-600 border-indigo-200'}`}>
+        <div className={`px-3 py-2 rounded-xl text-xs lg:text-sm flex items-center gap-2 ${isDemoMode ? 'bg-amber-950/30 text-amber-400 border border-amber-800/40' : 'dark:bg-indigo-950/30 dark:text-indigo-400 text-indigo-600 dark:border-indigo-900/40 bg-indigo-50 text-indigo-600 border-indigo-200'}`}>
           <div className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
           {isDemoMode ? 'Local Storage' : 'PostgreSQL Connected'}
         </div>
@@ -1327,7 +1327,7 @@ export default function TrackFitApp() {
               )}
             </div>
           </div>
-          <div className="shrink-0 max-w-[48%] flex items-center gap-1.5 dark:dark:bg-[#171722] bg-gray-50 bg-gray-50 bg-gray-50/80 border dark:border-[#232333] border-gray-200/80 border-gray-200/80 px-2.5 py-1 rounded-full text-xs dark:text-zinc-400 text-gray-500">
+          <div className="shrink-0 max-w-[48%] flex items-center gap-1.5 dark:bg-[#171722] bg-gray-50 bg-gray-50 bg-gray-50/80 border dark:border-[#232333] border-gray-200/80 border-gray-200/80 px-2.5 py-1 rounded-full text-xs dark:text-zinc-400 text-gray-500">
             <CalendarIcon className="h-3 w-3 shrink-0 dark:text-indigo-400 text-indigo-600" />
             <span className="min-w-0 truncate font-semibold">{formatDateFriendly(activeDate)}</span>
           </div>
@@ -1377,11 +1377,11 @@ export default function TrackFitApp() {
                       </svg>
                       <div className="absolute flex flex-col items-center text-center">
                         <span className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500 uppercase tracking-widest font-semibold">Remaining</span>
-                        <span className="text-3xl font-extrabold text-white">{Math.round(remaining.calories)}</span>
+                        <span className="text-3xl font-extrabold dark:text-white text-gray-900">{Math.round(remaining.calories)}</span>
                         <span className="text-xs lg:text-sm dark:text-zinc-400 text-gray-500">of {goals.calories} kcal</span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 w-full mt-5 pt-4 border-t border-[#1b1b27]/60 text-xs lg:text-sm">
+                    <div className="grid grid-cols-2 gap-4 w-full mt-5 pt-4 border-t dark:border-[#1b1b27]/60 border-gray-200/60 text-xs lg:text-sm">
                       <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-400" /><div><span className="dark:text-zinc-500 text-gray-500 block text-xs lg:text-sm mb-0.5">Consumed</span><span className="font-bold dark:text-zinc-300 text-gray-700">{Math.round(dailyTotals.calories)} kcal</span></div></div>
                       <div className="flex items-center gap-2 justify-end text-right"><div className="h-2 w-2 rounded-full bg-indigo-500" /><div><span className="dark:text-zinc-500 text-gray-500 block text-xs lg:text-sm mb-0.5">Sets Logged</span><span className="font-bold dark:text-zinc-300 text-gray-700">{workoutLogs.length}</span></div></div>
                     </div>
@@ -1412,7 +1412,7 @@ export default function TrackFitApp() {
                     <div className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">of {(waterGoalMl / 1000).toFixed(1)}L</div>
                     <div className="h-1.5 w-full dark:bg-[#181822] bg-gray-100 rounded-full overflow-hidden mt-2"><div className="h-full bg-sky-400 transition-all duration-500 rounded-full" style={{ width: `${Math.min(100, (totalWater / waterGoalMl) * 100)}%` }} /></div>
                     <div className="flex gap-1.5 mt-2.5 flex-wrap">
-                      {[250, 500, 1000].map(ml => <button key={ml} onClick={() => handleLogWater(ml)} className="text-xs lg:text-sm bg-sky-950/40 border border-sky-900/50 dark:text-sky-300 text-sky-700 px-2 py-1 rounded-lg hover:bg-sky-900/40 cursor-pointer font-medium">+{ml}ml</button>)}
+                      {[250, 500, 1000].map(ml => <button key={ml} onClick={() => handleLogWater(ml)} className="text-xs lg:text-sm dark:bg-sky-950/40 dark:border-sky-900/50 dark:text-sky-300 dark:hover:bg-sky-900/40 bg-sky-100 border-sky-200 text-sky-700 px-2 py-1 rounded-lg hover:bg-sky-200 cursor-pointer font-medium">+{ml}ml</button>)}
                     </div>
                   </Card>
 
@@ -1433,7 +1433,7 @@ export default function TrackFitApp() {
                           <Input type="number" step="0.1" placeholder={`Weight (${weightUnit})`} value={weightFormValue || ''} onChange={e => setWeightFormValue(Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8 flex-1 text-center" />
                           <Input type="number" step="0.1" placeholder="Fat % (opt)" value={bodyFatFormValue || ''} onChange={e => setBodyFatFormValue(e.target.value === '' ? '' : Number(e.target.value))} className="dark:bg-[#181822] bg-gray-100 dark:border-[#242436] border-gray-300 text-xs lg:text-sm h-8 w-20 text-center" />
                         </div>
-                        <button onClick={handleLogWeight} className="text-xs lg:text-sm w-full bg-violet-600/30 border border-violet-600/50 dark:text-violet-300 text-violet-700 py-1.5 rounded-lg hover:bg-violet-600/40 cursor-pointer font-medium text-center">Log Weight</button>
+                        <button onClick={handleLogWeight} className="text-xs lg:text-sm w-full dark:bg-violet-600/30 dark:border-violet-600/50 dark:text-violet-300 dark:hover:bg-violet-600/40 bg-violet-100 border-violet-200 text-violet-700 py-1.5 rounded-lg hover:bg-violet-200 cursor-pointer font-medium text-center">Log Weight</button>
                       </div>
                     )}
                   </Card>
@@ -1487,13 +1487,13 @@ export default function TrackFitApp() {
                       <div className="rounded-xl border border-indigo-800/50 bg-indigo-950/20 p-3.5 space-y-2">
                         <div className="flex items-center gap-2">
                           <Brain className="h-4 w-4 dark:text-indigo-400 text-indigo-600" />
-                          <span className="text-xs font-bold text-indigo-300">AI Recommendation</span>
+                          <span className="text-xs font-bold dark:text-indigo-300 text-indigo-600">AI Recommendation</span>
                         </div>
                         <div className={`text-sm font-bold ${aiRecommendation.verdict?.includes('Go') ? 'dark:text-emerald-400 text-emerald-600' : aiRecommendation.verdict?.includes('half') ? 'text-yellow-400' : 'dark:text-orange-400 text-orange-600'}`}>
                           {aiRecommendation.verdict}
                         </div>
                         <p className="text-sm lg:text-base dark:text-zinc-300 text-gray-700 leading-relaxed">{aiRecommendation.reasoning}</p>
-                        {aiRecommendation.tip && <p className="text-sm lg:text-base text-indigo-300/80 italic">💡 {aiRecommendation.tip}</p>}
+                        {aiRecommendation.tip && <p className="text-sm lg:text-base dark:text-indigo-300/80 text-indigo-600/80 italic">💡 {aiRecommendation.tip}</p>}
                         <button onClick={() => setAiRecommendation(null)} className="text-xs lg:text-sm dark:text-zinc-600 text-gray-400 hover:dark:text-zinc-400 text-gray-500 cursor-pointer">Dismiss</button>
                       </div>
                     ) : (
@@ -1838,7 +1838,7 @@ export default function TrackFitApp() {
                           <Button variant="ghost" size="icon" className="h-6 w-6 dark:text-indigo-400 text-indigo-600" onClick={() => setSelectedExercise('')}><X className="h-4 w-4" /></Button>
                         </div>
                         {exerciseHistory.length > 0 && (
-                          <div className="p-2.5 dark:dark:bg-[#171722] bg-gray-50 bg-gray-50 bg-gray-50/50 border dark:border-[#222235]/60 border-gray-200/60 rounded-xl text-xs lg:text-sm">
+                          <div className="p-2.5 dark:bg-[#171722] bg-gray-50 bg-gray-50 bg-gray-50/50 border dark:border-[#222235]/60 border-gray-200/60 rounded-xl text-xs lg:text-sm">
                             <span className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 uppercase font-bold block mb-1">Previous Sets</span>
                             {exerciseHistory.slice(0, 3).map((w, i) => <div key={i} className="flex justify-between dark:text-zinc-400 text-gray-500"><span>Set {w.setNumber} ({w.date})</span><span className="font-bold">{w.weight}kg × {w.reps}</span></div>)}
                           </div>
@@ -1873,8 +1873,8 @@ export default function TrackFitApp() {
                       onClick={() => setInsightSubTab(id)}
                       className={`flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl text-xs font-medium transition-all cursor-pointer btn-press smooth-transition ${
                         insightSubTab === id
-                          ? 'bg-zinc-800 dark:text-zinc-100 text-gray-900 shadow-sm ring-1 ring-zinc-700/50'
-                          : 'bg-zinc-950/50 dark:text-zinc-500 text-gray-500 hover:dark:text-zinc-300 text-gray-700 hover:bg-zinc-900/50 border border-zinc-800/40'
+                          ? 'dark:bg-zinc-800 dark:text-zinc-100 dark:shadow-sm dark:ring-1 dark:ring-zinc-700/50 bg-gray-200 text-gray-900 shadow-sm ring-1 ring-gray-300/50'
+                          : 'dark:bg-zinc-950/50 dark:text-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-900/50 dark:border-zinc-800/40 bg-gray-100 text-gray-500 hover:text-gray-700 hover:bg-gray-200 border border-gray-200'
                       }`}
                     >
                       <Icon className="h-4 w-4" />
@@ -2559,7 +2559,7 @@ export default function TrackFitApp() {
                 <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl">
                   <CardHeader className="py-4 px-5"><div className="text-sm font-semibold flex items-center gap-1.5 dark:text-zinc-300 text-gray-700"><Database className="h-4 w-4 dark:text-indigo-400 text-indigo-600" />Database</div><CardDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Manage your Postgres connection.</CardDescription></CardHeader>
                   <CardContent className="px-5 pb-5 space-y-3">
-                    <div className={`rounded-lg p-3 text-sm lg:text-base flex items-start gap-2 ${isDemoMode ? 'dark:bg-amber-950/20 dark:border-amber-800/40 bg-amber-50 border-amber-200 dark:text-amber-300 text-amber-700' : 'dark:bg-indigo-950/20 dark:border-indigo-900/40 dark:dark:text-indigo-400 text-indigo-600 bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
+                    <div className={`rounded-lg p-3 text-sm lg:text-base flex items-start gap-2 ${isDemoMode ? 'dark:bg-amber-950/20 dark:border-amber-800/40 bg-amber-50 border-amber-200 dark:text-amber-300 text-amber-700' : 'dark:bg-indigo-950/20 dark:border-indigo-900/40 dark:text-indigo-400 text-indigo-600 bg-indigo-50 border-indigo-200 text-indigo-600'}`}>
                       <Check className="h-4 w-4 shrink-0 mt-0.5" /><div><span className="font-bold">{isDemoMode ? 'Local Storage (Browser)' : 'PostgreSQL Connected'}</span><p className="dark:text-zinc-400 text-gray-500 mt-0.5 text-xs lg:text-sm">{isDemoMode ? '⚠️ Clearing browser data will erase all logs permanently.' : 'Data synced to your private database.'}</p></div>
                     </div>
                     <div className="space-y-1">
