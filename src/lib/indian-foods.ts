@@ -523,3 +523,53 @@ export function getFoodsByTags(tags: string[]): IndianFood[] {
     tags.some(tag => food.tags.includes(tag.toLowerCase()))
   );
 }
+
+export interface FoodUnit {
+  unit: string;
+  label: string;
+  gramsPerUnit: number;
+}
+
+export function getFoodServingUnits(foodName: string): FoodUnit[] {
+  const name = foodName.toLowerCase();
+  
+  // Standard grams unit is always available
+  const units: FoodUnit[] = [
+    { unit: 'g', label: 'Grams (g)', gramsPerUnit: 1 }
+  ];
+
+  // Specific unit mapping based on keyword matches
+  if (name.includes('paratha')) {
+    units.unshift({ unit: 'piece', label: 'Piece (1 pc = 120g)', gramsPerUnit: 120 });
+  } else if (name.includes('naan') || name.includes('bhature') || name.includes('kulcha')) {
+    units.unshift({ unit: 'piece', label: 'Piece (1 pc = 80g)', gramsPerUnit: 80 });
+  } else if (name.includes('roti') || name.includes('chapati') || name.includes('poori') || name.includes('thepla') || name.includes('papad') || name.includes('phulka')) {
+    units.unshift({ unit: 'piece', label: 'Piece (1 pc = 40g)', gramsPerUnit: 40 });
+  } else if (name.includes('protein') || name.includes('whey') || name.includes('scoop')) {
+    units.unshift({ unit: 'scoop', label: 'Scoop (1 scoop = 30g)', gramsPerUnit: 30 });
+  } else if (name.includes('milk') || name.includes('lassi') || name.includes('chaas') || name.includes('shake') || name.includes('beverage') || name.includes('juice') || name.includes('tea') || name.includes('chai') || name.includes('coffee')) {
+    units.unshift(
+      { unit: 'glass', label: 'Glass (1 glass = 250ml/g)', gramsPerUnit: 250 },
+      { unit: 'cup', label: 'Cup (1 cup = 150ml/g)', gramsPerUnit: 150 }
+    );
+  } else if (name.includes('egg')) {
+    units.unshift({ unit: 'piece', label: 'Piece (1 egg = 50g)', gramsPerUnit: 50 });
+  } else if (name.includes('samosa')) {
+    units.unshift({ unit: 'piece', label: 'Piece (1 pc = 70g)', gramsPerUnit: 70 });
+  } else if (name.includes('vada pav') || name.includes('dabeli')) {
+    units.unshift({ unit: 'piece', label: 'Piece (1 pc = 100g)', gramsPerUnit: 100 });
+  } else if (name.includes('idli')) {
+    units.unshift({ unit: 'piece', label: 'Piece (1 pc = 40g)', gramsPerUnit: 40 });
+  } else if (name.includes('vada') || name.includes('bonda')) {
+    units.unshift({ unit: 'piece', label: 'Piece (1 pc = 50g)', gramsPerUnit: 50 });
+  } else if (name.includes('ladoo') || name.includes('gulab jamun') || name.includes('rasgulla') || name.includes('rasmalai') || name.includes('katli') || name.includes('barfi') || name.includes('modak') || name.includes('sandesh') || name.includes('peda')) {
+    units.unshift({ unit: 'piece', label: 'Piece (1 pc = 40g)', gramsPerUnit: 40 });
+  } else if (name.includes('rice') || name.includes('biryani') || name.includes('pulao') || name.includes('khichdi') || name.includes('poha') || name.includes('upma') || name.includes('salad') || name.includes('kachumber') || name.includes('curd') || name.includes('dahi') || name.includes('dal') || name.includes('tadka') || name.includes('makhani') || name.includes('sambar') || name.includes('rasam') || name.includes('curry') || name.includes('paneer') || name.includes('chicken') || name.includes('mutton') || name.includes('sabzi') || name.includes('bharta') || name.includes('ghugni') || name.includes('halwa') || name.includes('kheer') || name.includes('payasam') || name.includes('doi') || name.includes('shrikhand')) {
+    units.unshift(
+      { unit: 'bowl', label: 'Bowl (1 bowl = 150g)', gramsPerUnit: 150 },
+      { unit: 'plate', label: 'Plate (1 plate = 250g)', gramsPerUnit: 250 }
+    );
+  }
+
+  return units;
+}

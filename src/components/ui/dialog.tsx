@@ -94,7 +94,7 @@ function DialogContent({ className, children, showCloseButton = true, ...props }
       <DialogOverlay />
       <div
         className={cn(
-          "relative z-50 w-full max-w-sm rounded-2xl bg-zinc-950 border border-zinc-800/80 p-5 shadow-2xl text-zinc-100 transition-all focus:outline-none animate-in fade-in-0 zoom-in-95 duration-150",
+          "relative z-50 w-full max-w-sm rounded-2xl bg-zinc-950 border border-zinc-800/80 p-5 shadow-2xl text-zinc-100 transition-all focus:outline-none animate-in fade-in-0 zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto",
           className
         )}
         {...props}

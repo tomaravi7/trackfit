@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
       tags: rec.food.tags,
       score: rec.score,
       reason: rec.reason,
+      servingSize: rec.food.servingSize,
     }));
 
     return NextResponse.json({ 

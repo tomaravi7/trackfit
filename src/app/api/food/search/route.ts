@@ -29,6 +29,7 @@ function formatIndianFood(food: IndianFood) {
     category: food.category,
     region: food.region,
     mealType: food.mealType,
+    servingSize: food.servingSize,
     tags: food.tags,
     source: 'indian-database',
   };
@@ -84,8 +85,11 @@ export async function GET(req: NextRequest) {
     )}&search_simple=1&action=process&json=1&page_size=20`;
 
     let offResults: any[] = [];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
     try {
       const response = await fetch(url, {
+        signal: controller.signal,
         headers: {
           'User-Agent': 'TrackFit - WebApp - Version 1.0',
         },
@@ -98,8 +102,14 @@ export async function GET(req: NextRequest) {
           .filter((p) => p.product_name || p.product_name_en)
           .map(formatOFFProduct);
       }
-    } catch (err) {
-      console.error('Open Food Facts search failed:', err);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.warn('Open Food Facts search timed out');
+      } else {
+        console.error('Open Food Facts search failed:', err);
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     const indianNames = new Set(formattedIndian.map(f => f.name.toLowerCase()));

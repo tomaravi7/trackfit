@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     const result = await pool.query(
       `SELECT id, date::text, food_name as "foodName", quantity::float, calories::float,
        protein::float, carbs::float, fiber::float, fat::float, meal_type as "mealType",
+       serving_unit as "servingUnit",
        created_at as "createdAt"
        FROM food_logs WHERE date = $1 ORDER BY created_at ASC`,
       [date]
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { date, foodName, quantity, calories, protein, carbs, fiber, fat, mealType } = body;
+    const { date, foodName, quantity, calories, protein, carbs, fiber, fat, mealType, servingUnit } = body;
 
     if (!date || !foodName || quantity === undefined || calories === undefined || protein === undefined || carbs === undefined || fiber === undefined || fat === undefined || !mealType) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
@@ -47,11 +48,12 @@ export async function POST(req: NextRequest) {
 
     const pool = await getDbPool(connectionString);
     const result = await pool.query(
-      `INSERT INTO food_logs (date, food_name, quantity, calories, protein, carbs, fiber, fat, meal_type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO food_logs (date, food_name, quantity, calories, protein, carbs, fiber, fat, meal_type, serving_unit)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id, date::text, food_name as "foodName", quantity::float, calories::float,
-       protein::float, carbs::float, fiber::float, fat::float, meal_type as "mealType", created_at as "createdAt"`,
-      [date, foodName, quantity, calories, protein, carbs, fiber, fat, mealType]
+       protein::float, carbs::float, fiber::float, fat::float, meal_type as "mealType",
+       serving_unit as "servingUnit", created_at as "createdAt"`,
+      [date, foodName, quantity, calories, protein, carbs, fiber, fat, mealType, servingUnit || 'g']
     );
 
     return NextResponse.json({ success: true, data: result.rows[0] });
@@ -69,7 +71,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, foodName, quantity, calories, protein, carbs, fiber, fat, mealType } = body;
+    const { id, foodName, quantity, calories, protein, carbs, fiber, fat, mealType, servingUnit } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Missing food log ID' }, { status: 400 });
@@ -106,11 +108,13 @@ export async function PATCH(req: NextRequest) {
            carbs = COALESCE($6, carbs),
            fiber = COALESCE($7, fiber),
            fat = COALESCE($8, fat),
-           meal_type = COALESCE($9, meal_type)
+           meal_type = COALESCE($9, meal_type),
+           serving_unit = COALESCE($10, serving_unit)
        WHERE id = $1
        RETURNING id, date::text, food_name as "foodName", quantity::float, calories::float,
-       protein::float, carbs::float, fiber::float, fat::float, meal_type as "mealType", created_at as "createdAt"`,
-      [id, foodName, quantity, calories, protein, carbs, fiber, fat, mealType]
+       protein::float, carbs::float, fiber::float, fat::float, meal_type as "mealType",
+       serving_unit as "servingUnit", created_at as "createdAt"`,
+      [id, foodName, quantity, calories, protein, carbs, fiber, fat, mealType, servingUnit]
     );
 
     return NextResponse.json({ success: true, data: result.rows[0] });

@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BodyHeatmap } from '@/components/body-heatmap';
+import { getFoodServingUnits, FoodUnit } from '@/lib/indian-foods';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 interface FoodLog {
@@ -30,6 +31,7 @@ interface FoodLog {
   fiber: number;
   fat: number;
   mealType: 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
+  servingUnit?: string;
   createdAt?: string;
 }
 interface WorkoutLog {
@@ -127,9 +129,20 @@ export default function TrackFitApp() {
   const [foodFormCarbs, setFoodFormCarbs] = useState(0);
   const [foodFormFiber, setFoodFormFiber] = useState(0);
   const [foodFormFat, setFoodFormFat] = useState(0);
+  const [baseCalories, setBaseCalories] = useState(0);
+  const [baseProtein, setBaseProtein] = useState(0);
+  const [baseCarbs, setBaseCarbs] = useState(0);
+  const [baseFiber, setBaseFiber] = useState(0);
+  const [baseFat, setBaseFat] = useState(0);
   const [foodFormMealType, setFoodFormMealType] = useState<FoodLog['mealType']>('Breakfast');
   const [foodDialogOpen, setFoodDialogOpen] = useState(false);
   const [isEditingFood, setIsEditingFood] = useState(false);
+  const [foodFormServingUnit, setFoodFormServingUnit] = useState<string>('g');
+  const [availableServingUnits, setAvailableServingUnits] = useState<FoodUnit[]>([
+    { unit: 'g', label: 'Grams (g)', gramsPerUnit: 1 }
+  ]);
+  const [quickLogMealType, setQuickLogMealType] = useState<FoodLog['mealType']>('Breakfast');
+  const [quickLogSuccess, setQuickLogSuccess] = useState<string | null>(null);
 
   // Workout form
   const [workoutFormWeight, setWorkoutFormWeight] = useState(0);
@@ -212,6 +225,24 @@ export default function TrackFitApp() {
       else if (storedConn) { setDbConn(storedConn); verifyDatabase(storedConn); }
       else setLoading(false);
     } catch { setMounted(true); setLoading(false); }
+  }, []);
+
+  // Set default quick log meal type based on local time
+  useEffect(() => {
+    const hours = new Date().getHours();
+    if (hours >= 5 && hours < 11) {
+      setQuickLogMealType('Breakfast');
+      setFoodFormMealType('Breakfast');
+    } else if (hours >= 11 && hours < 16) {
+      setQuickLogMealType('Lunch');
+      setFoodFormMealType('Lunch');
+    } else if (hours >= 16 && hours < 19) {
+      setQuickLogMealType('Snack');
+      setFoodFormMealType('Snack');
+    } else {
+      setQuickLogMealType('Dinner');
+      setFoodFormMealType('Dinner');
+    }
   }, []);
 
   // ─── Theme Toggle ─────────────────────────────────────────────────────────────
@@ -514,41 +545,152 @@ export default function TrackFitApp() {
 
   // ─── Food Operations ──────────────────────────────────────────────────────────
   const handleSelectFoodSearch = (item: any) => {
-    setSelectedFoodItem(item); setFoodFormName(item.name);
-    setFoodFormCalories(item.calories || 0); setFoodFormProtein(item.protein || 0);
-    setFoodFormCarbs(item.carbs || 0); setFoodFormFiber(item.fiber || 0); setFoodFormFat(item.fat || 0);
-    setFoodSearchQuery(''); setFoodSearchResults([]);
+    setSelectedFoodItem(item); 
+    setFoodFormName(item.name);
+    
+    // Scale factor to convert database's servingSize macros to 100g basis
+    const scale = item.servingSize && item.servingSize > 0 ? (100 / item.servingSize) : 1;
+    const bCalories = (item.calories || 0) * scale;
+    const bProtein = (item.protein || 0) * scale;
+    const bCarbs = (item.carbs || 0) * scale;
+    const bFiber = (item.fiber || 0) * scale;
+    const bFat = (item.fat || 0) * scale;
+
+    setBaseCalories(bCalories);
+    setBaseProtein(bProtein);
+    setBaseCarbs(bCarbs);
+    setBaseFiber(bFiber);
+    setBaseFat(bFat);
+
+    const units = getFoodServingUnits(item.name);
+    setAvailableServingUnits(units);
+    
+    const defaultUnit = units[0];
+    const initialUnit = defaultUnit.unit;
+    const initialQty = initialUnit !== 'g' ? 1 : 100;
+    
+    setFoodFormServingUnit(initialUnit);
+    setFoodFormQuantity(initialQty);
+
+    const ratio = (initialQty * defaultUnit.gramsPerUnit) / 100;
+    setFoodFormCalories(Math.round(bCalories * ratio));
+    setFoodFormProtein(Math.round(bProtein * ratio * 10) / 10);
+    setFoodFormCarbs(Math.round(bCarbs * ratio * 10) / 10);
+    setFoodFormFiber(Math.round(bFiber * ratio * 10) / 10);
+    setFoodFormFat(Math.round(bFat * ratio * 10) / 10);
+
+    setFoodSearchQuery(''); 
+    setFoodSearchResults([]);
+  };
+
+  const handleQuantityChange = (qty: number) => {
+    console.log('[DEBUG] handleQuantityChange:', qty, 'currentUnit:', foodFormServingUnit, 'baseProtein:', baseProtein);
+    setFoodFormQuantity(qty);
+    const unit = availableServingUnits.find(u => u.unit === foodFormServingUnit) || { gramsPerUnit: 1 };
+    const ratio = (qty * unit.gramsPerUnit) / 100;
+    
+    setFoodFormCalories(Math.round(baseCalories * ratio));
+    setFoodFormProtein(Math.round(baseProtein * ratio * 10) / 10);
+    setFoodFormCarbs(Math.round(baseCarbs * ratio * 10) / 10);
+    setFoodFormFiber(Math.round(baseFiber * ratio * 10) / 10);
+    setFoodFormFat(Math.round(baseFat * ratio * 10) / 10);
+  };
+
+  const handleServingUnitChange = (newUnitStr: string) => {
+    console.log('[DEBUG] handleServingUnitChange:', newUnitStr, 'currentUnit:', foodFormServingUnit, 'quantity:', foodFormQuantity, 'baseProtein:', baseProtein);
+    const oldUnit = availableServingUnits.find(u => u.unit === foodFormServingUnit);
+    const newUnit = availableServingUnits.find(u => u.unit === newUnitStr);
+    
+    if (oldUnit && newUnit) {
+      const grams = foodFormQuantity * oldUnit.gramsPerUnit;
+      const newQuantity = grams / newUnit.gramsPerUnit;
+      const roundedQuantity = newQuantity % 1 === 0 ? newQuantity : Math.round(newQuantity * 10) / 10;
+      setFoodFormQuantity(roundedQuantity);
+
+      const ratio = (roundedQuantity * newUnit.gramsPerUnit) / 100;
+      setFoodFormCalories(Math.round(baseCalories * ratio));
+      setFoodFormProtein(Math.round(baseProtein * ratio * 10) / 10);
+      setFoodFormCarbs(Math.round(baseCarbs * ratio * 10) / 10);
+      setFoodFormFiber(Math.round(baseFiber * ratio * 10) / 10);
+      setFoodFormFat(Math.round(baseFat * ratio * 10) / 10);
+    }
+    setFoodFormServingUnit(newUnitStr);
+  };
+
+  const updateMacroValue = (field: 'calories' | 'protein' | 'carbs' | 'fiber' | 'fat', portionValue: number) => {
+    console.log('[DEBUG] updateMacroValue:', field, portionValue, 'currentUnit:', foodFormServingUnit, 'quantity:', foodFormQuantity);
+    const unit = availableServingUnits.find(u => u.unit === foodFormServingUnit) || { gramsPerUnit: 1 };
+    const totalGrams = foodFormQuantity * unit.gramsPerUnit;
+    const ratio = totalGrams > 0 ? totalGrams / 100 : 1;
+    const baseValue = ratio > 0 ? portionValue / ratio : portionValue;
+
+    if (field === 'calories') {
+      setFoodFormCalories(portionValue);
+      setBaseCalories(baseValue);
+    } else if (field === 'protein') {
+      setFoodFormProtein(portionValue);
+      setBaseProtein(baseValue);
+    } else if (field === 'carbs') {
+      setFoodFormCarbs(portionValue);
+      setBaseCarbs(baseValue);
+    } else if (field === 'fiber') {
+      setFoodFormFiber(portionValue);
+      setBaseFiber(baseValue);
+    } else if (field === 'fat') {
+      setFoodFormFat(portionValue);
+      setBaseFat(baseValue);
+    }
   };
 
   const openEditFood = (food: FoodLog) => {
-    setIsEditingFood(true); setFoodFormId(food.id);
-    setFoodFormName(food.foodName); setFoodFormQuantity(food.quantity);
-    // Reverse-calculate per 100g values from the stored totals
-    const r = food.quantity > 0 ? 100 / food.quantity : 1;
-    setFoodFormCalories(Math.round(food.calories * r));
-    setFoodFormProtein(Math.round(food.protein * r * 10) / 10);
-    setFoodFormCarbs(Math.round(food.carbs * r * 10) / 10);
-    setFoodFormFiber(Math.round(food.fiber * r * 10) / 10);
-    setFoodFormFat(Math.round(food.fat * r * 10) / 10);
+    setActiveTab('food');
+    setIsEditingFood(true); 
+    setFoodFormId(food.id);
+    setFoodFormName(food.foodName); 
+    setFoodFormQuantity(food.quantity);
     setFoodFormMealType(food.mealType);
+    
+    const units = getFoodServingUnits(food.foodName);
+    setAvailableServingUnits(units);
+    
+    const currentUnitStr = food.servingUnit || 'g';
+    setFoodFormServingUnit(currentUnitStr);
+    
+    const unit = units.find(u => u.unit === currentUnitStr) || { gramsPerUnit: 1 };
+    const totalGrams = food.quantity * unit.gramsPerUnit;
+    const ratio = totalGrams > 0 ? totalGrams / 100 : 1;
+    
+    setFoodFormCalories(food.calories);
+    setFoodFormProtein(food.protein);
+    setFoodFormCarbs(food.carbs);
+    setFoodFormFiber(food.fiber);
+    setFoodFormFat(food.fat);
+
+    setBaseCalories(ratio > 0 ? food.calories / ratio : food.calories);
+    setBaseProtein(ratio > 0 ? food.protein / ratio : food.protein);
+    setBaseCarbs(ratio > 0 ? food.carbs / ratio : food.carbs);
+    setBaseFiber(ratio > 0 ? food.fiber / ratio : food.fiber);
+    setBaseFat(ratio > 0 ? food.fat / ratio : food.fat);
+    
     setFoodDialogOpen(true);
   };
 
   const handleSaveFood = async () => {
     if (!foodFormName || !foodFormQuantity) return;
-    const ratio = foodFormQuantity / 100;
     const payload = {
-      date: activeDate, foodName: foodFormName, quantity: foodFormQuantity,
-      calories: Math.round(foodFormCalories * ratio),
-      protein: Math.round(foodFormProtein * ratio * 10) / 10,
-      carbs: Math.round(foodFormCarbs * ratio * 10) / 10,
-      fiber: Math.round(foodFormFiber * ratio * 10) / 10,
-      fat: Math.round(foodFormFat * ratio * 10) / 10,
+      date: activeDate, 
+      foodName: foodFormName, 
+      quantity: foodFormQuantity,
+      calories: Math.round(foodFormCalories),
+      protein: Math.round(foodFormProtein * 10) / 10,
+      carbs: Math.round(foodFormCarbs * 10) / 10,
+      fiber: Math.round(foodFormFiber * 10) / 10,
+      fat: Math.round(foodFormFat * 10) / 10,
       mealType: foodFormMealType,
+      servingUnit: foodFormServingUnit,
     };
 
     if (isEditingFood && foodFormId !== undefined) {
-      // EDIT path
       if (isDemoMode) {
         const all = safeLocalGetJSON('trackfit_demo_foods', []);
         const updated = all.map((f: FoodLog) => f.id === foodFormId ? { ...f, ...payload } : f);
@@ -613,10 +755,86 @@ export default function TrackFitApp() {
     } catch (e) { console.error(e); }
   };
 
+  const handleQuickLog = async (foodName: string, quantity: number, servingUnit: string) => {
+    try {
+      setQuickLogSuccess(foodName);
+      let foodItem: any = null;
+
+      const r = await fetch(`/api/food/search?q=${encodeURIComponent(foodName)}`);
+      const d = await r.json();
+      if (d.success && d.data.length > 0) {
+        foodItem = d.data.find((f: any) => f.name.toLowerCase() === foodName.toLowerCase()) || d.data[0];
+      }
+
+      if (foodItem) {
+        const scale = foodItem.servingSize && foodItem.servingSize > 0 ? (100 / foodItem.servingSize) : 1;
+        const baseCalories = (foodItem.calories || 0) * scale;
+        const baseProtein = (foodItem.protein || 0) * scale;
+        const baseCarbs = (foodItem.carbs || 0) * scale;
+        const baseFiber = (foodItem.fiber || 0) * scale;
+        const baseFat = (foodItem.fat || 0) * scale;
+
+        const units = getFoodServingUnits(foodItem.name);
+        const unit = units.find(u => u.unit === servingUnit) || { gramsPerUnit: 1 };
+        const ratio = (quantity * unit.gramsPerUnit) / 100;
+
+        const payload = {
+          date: activeDate,
+          foodName: foodItem.name,
+          quantity: quantity,
+          calories: Math.round(baseCalories * ratio),
+          protein: Math.round(baseProtein * ratio * 10) / 10,
+          carbs: Math.round(baseCarbs * ratio * 10) / 10,
+          fiber: Math.round(baseFiber * ratio * 10) / 10,
+          fat: Math.round(baseFat * ratio * 10) / 10,
+          mealType: quickLogMealType,
+          servingUnit: servingUnit
+        };
+
+        if (isDemoMode) {
+          const all = safeLocalGetJSON('trackfit_demo_foods', []);
+          safeLocalSet('trackfit_demo_foods', JSON.stringify([...all, { ...payload, id: Date.now(), createdAt: new Date().toISOString() }]));
+          loadDemoData();
+          fetchConsistencyAndSessions();
+        } else {
+          const res = await fetch('/api/food', {
+            method: 'POST',
+            headers: { 'x-db-connection-string': dbConn, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setFoodLogs(prev => [...prev, data.data]);
+            fetchConsistencyAndSessions();
+          }
+        }
+      }
+      setTimeout(() => setQuickLogSuccess(null), 1500);
+    } catch (e) {
+      console.error('Failed to quick log food:', e);
+      setQuickLogSuccess(null);
+    }
+  };
+
   const resetFoodForm = () => {
-    setSelectedFoodItem(null); setFoodFormId(undefined); setFoodFormName(''); setFoodFormQuantity(100);
-    setFoodFormCalories(0); setFoodFormProtein(0); setFoodFormCarbs(0); setFoodFormFiber(0); setFoodFormFat(0);
-    setFoodSearchQuery(''); setIsEditingFood(false);
+    setSelectedFoodItem(null); 
+    setFoodFormId(undefined); 
+    setFoodFormName(''); 
+    setFoodFormQuantity(100);
+    setFoodFormCalories(0); 
+    setFoodFormProtein(0); 
+    setFoodFormCarbs(0); 
+    setFoodFormFiber(0); 
+    setFoodFormFat(0);
+    setBaseCalories(0);
+    setBaseProtein(0);
+    setBaseCarbs(0);
+    setBaseFiber(0);
+    setBaseFat(0);
+    setFoodFormServingUnit('g');
+    setAvailableServingUnits([{ unit: 'g', label: 'Grams (g)', gramsPerUnit: 1 }]);
+    setFoodSearchQuery(''); 
+    setIsEditingFood(false);
   };
 
   // ─── Workout ──────────────────────────────────────────────────────────────────
@@ -1215,11 +1433,27 @@ export default function TrackFitApp() {
   const FoodRow = ({ food }: { food: FoodLog }) => {
     const editable = canEdit(food.createdAt);
     const hrs = hoursAgo(food.createdAt);
+
+    // Calculate formatted quantity and gram display
+    let quantityDisplay = `${food.quantity}g`;
+    if (food.servingUnit && food.servingUnit !== 'g') {
+      const units = getFoodServingUnits(food.foodName);
+      const matchedUnit = units.find(u => u.unit === food.servingUnit);
+      if (matchedUnit) {
+        const grams = Math.round(food.quantity * matchedUnit.gramsPerUnit);
+        // pluralize unit if quantity > 1
+        const unitLabel = food.quantity > 1 ? `${food.servingUnit}s` : food.servingUnit;
+        quantityDisplay = `${food.quantity} ${unitLabel} (${grams}g)`;
+      } else {
+        quantityDisplay = `${food.quantity} ${food.servingUnit}`;
+      }
+    }
+
     return (
       <div className="p-3.5 flex items-center justify-between gap-3 min-w-0 group">
         <div className="space-y-0.5 max-w-[65%]">
           <h4 className="font-semibold dark:text-zinc-200 text-gray-800 text-xs truncate">{food.foodName}</h4>
-          <p className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">{food.quantity}g · P:{Math.round(food.protein)}g · C:{Math.round(food.carbs)}g · F:{Math.round(food.fat)}g</p>
+          <p className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">{quantityDisplay} · P:{Math.round(food.protein)}g · C:{Math.round(food.carbs)}g · F:{Math.round(food.fat)}g</p>
           {!editable && <p className="text-[10px] lg:text-xs dark:text-zinc-600 text-gray-400 flex items-center gap-0.5"><Lock className="h-2.5 w-2.5" />Locked after 6h</p>}
         </div>
         <div className="flex items-center gap-1.5">
@@ -1519,6 +1753,59 @@ export default function TrackFitApp() {
                   </div>
                 </Card>
 
+                {/* Everyday Favorites */}
+                <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-semibold dark:text-zinc-200 text-gray-800 text-xs lg:text-sm">Everyday Favorites</h4>
+                      <p className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500">1-click to quickly log your standard daily staples</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] lg:text-xs dark:text-zinc-400 text-gray-500">Target:</span>
+                      <Select value={quickLogMealType} onValueChange={(v: any) => setQuickLogMealType(v)}>
+                        <SelectTrigger className="dark:bg-[#181822] bg-gray-50 dark:border-[#242436] border-gray-300 h-7 w-24 text-[10px] lg:text-xs dark:text-zinc-200 text-gray-800">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-[10px] lg:text-xs">
+                          <SelectItem value="Breakfast">Breakfast</SelectItem>
+                          <SelectItem value="Lunch">Lunch</SelectItem>
+                          <SelectItem value="Dinner">Dinner</SelectItem>
+                          <SelectItem value="Snack">Snack</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                    {[
+                      { displayName: 'Plain Chapati', icon: '🫓', foodName: 'Chapati (Plain)', qty: 1, unit: 'piece' },
+                      { displayName: 'Paneer (200g)', icon: '🧀', foodName: 'Paneer', qty: 200, unit: 'g' },
+                      { displayName: 'Toned Milk', icon: '🥛', foodName: 'Milk (Toned)', qty: 1, unit: 'glass' },
+                      { displayName: 'Whey Protein', icon: '🥤', foodName: 'Whey Protein (1 scoop)', qty: 1, unit: 'scoop' },
+                      { displayName: 'Boiled Egg', icon: '🥚', foodName: 'Egg (Boiled)', qty: 1, unit: 'piece' },
+                      { displayName: 'Steamed Rice', icon: '🍚', foodName: 'Steamed Rice', qty: 1, unit: 'bowl' },
+                    ].map((item) => {
+                      const isSuccess = quickLogSuccess === item.foodName;
+                      return (
+                        <button
+                          key={item.foodName}
+                          onClick={() => handleQuickLog(item.foodName, item.qty, item.unit)}
+                          className={`p-2.5 rounded-xl border dark:bg-[#151520] bg-gray-50/50 dark:border-[#212130] border-gray-200 hover:dark:bg-[#1c1c2a] hover:bg-gray-105/70 transition-all text-center flex flex-col items-center justify-center gap-1 group relative overflow-hidden btn-press card-hover`}
+                        >
+                          {isSuccess ? (
+                            <div className="absolute inset-0 bg-emerald-600/10 dark:bg-emerald-950/20 flex items-center justify-center animate-fade-in animate-duration-300">
+                              <Check className="h-5 w-5 text-emerald-500 animate-scale-up" />
+                            </div>
+                          ) : null}
+                          <span className="text-xl group-hover:scale-110 transition-transform duration-200">{item.icon}</span>
+                          <span className="font-semibold text-[10px] lg:text-xs truncate w-full dark:text-zinc-200 text-gray-800">{item.displayName}</span>
+                          <span className="text-[9px] dark:text-zinc-500 text-gray-500">{item.qty} {item.unit}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Card>
+
                 {/* Food Recommendations */}
                 <Card className="dark:bg-[#111116] bg-white dark:border-[#222231] border-gray-200/80 rounded-2xl overflow-hidden">
                   <button
@@ -1582,23 +1869,21 @@ export default function TrackFitApp() {
                           ))}
                         </div>
                       )}
-                       {foodRecommendations.length > 0 ? (
-                         <div className="grid grid-cols-1 gap-2">
-                           {foodRecommendations.map((rec, i) => (
-                             <button
-                               key={i}
-                               onClick={() => {
-                                 setFoodFormName(rec.name);
-                                 setFoodFormCalories(rec.calories);
-                                 setFoodFormProtein(rec.protein);
-                                 setFoodFormCarbs(rec.carbs);
-                                 setFoodFormFiber(rec.fiber);
-                                 setFoodFormFat(rec.fat);
-                                 setFoodFormMealType(rec.mealType);
-                                 setFoodDialogOpen(true);
-                               }}
-                               className={`text-left p-2.5 dark:bg-[#151520] bg-gray-50 bg-gray-50/30 border dark:border-[#212130] border-gray-200/60 rounded-lg hover:dark:bg-[#1a1a28] bg-gray-100 bg-gray-100 card-hover btn-press animate-fade-in-up stagger-${Math.min(i + 1, 8)}`}
-                             >
+                      {foodRecommendations.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-2">
+                          {foodRecommendations.map((rec, i) => (
+                            <button
+                              key={i}
+                              onClick={() => {
+                                handleSelectFoodSearch({
+                                  ...rec,
+                                  servingSize: rec.servingSize || 100
+                                });
+                                setFoodFormMealType(rec.mealType);
+                                setFoodDialogOpen(true);
+                              }}
+                              className={`text-left p-2.5 dark:bg-[#151520] bg-gray-50 bg-gray-50/30 border dark:border-[#212130] border-gray-200/60 rounded-lg hover:dark:bg-[#1a1a28] bg-gray-100 card-hover btn-press animate-fade-in-up stagger-${Math.min(i + 1, 8)}`}
+                            >
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
@@ -1631,10 +1916,10 @@ export default function TrackFitApp() {
                           Clear recommendations
                         </button>
                       )}
-                        </>
-                      )}
-                    </CardContent>
-                  )}
+                      </>
+                    )}
+                  </CardContent>
+                )}
                 </Card>
 
                 <div className="lg:grid lg:grid-cols-2 lg:gap-4 space-y-4 lg:space-y-0">
@@ -1655,10 +1940,14 @@ export default function TrackFitApp() {
                 </div>
 
                 {/* Food Dialog */}
+                <button
+                  type="button"
+                  onClick={() => setFoodDialogOpen(true)}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold h-11 rounded-xl flex items-center justify-center cursor-pointer"
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />Log Food / Meal
+                </button>
                 <Dialog open={foodDialogOpen} onOpenChange={open => { setFoodDialogOpen(open); if (!open) resetFoodForm(); }}>
-                  <DialogTrigger className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold h-11 rounded-xl flex items-center justify-center cursor-pointer">
-                    <Plus className="h-4 w-4 mr-1.5" />Log Food / Meal
-                  </DialogTrigger>
                   <DialogContent className="dark:bg-[#121219] bg-white dark:border-[#222233] border-gray-200 dark:text-zinc-100 text-gray-900 max-w-sm rounded-3xl p-5">
                     <DialogHeader>
                       <DialogTitle>{isEditingFood ? 'Edit Food Entry' : 'Add Food'}</DialogTitle>
@@ -1693,14 +1982,57 @@ export default function TrackFitApp() {
                     {selectedFoodItem && <div className="p-2.5 bg-indigo-950/20 border border-indigo-900/35 rounded-lg flex justify-between items-center"><span className="font-semibold dark:text-indigo-400 text-indigo-600 text-sm lg:text-base truncate">Linked: {selectedFoodItem.name}</span><Button variant="ghost" size="icon" className="h-5 w-5 dark:text-indigo-400 text-indigo-600" onClick={() => setSelectedFoodItem(null)}><X className="h-3.5 w-3.5" /></Button></div>}
                     <div className="space-y-2 border-t dark:border-[#1d1d2b] border-gray-200 pt-3">
                       <div className="flex gap-2">
-                        <div className="space-y-1 flex-1"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Food Name</Label><Input type="text" value={foodFormName} onChange={e => setFoodFormName(e.target.value)} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" placeholder="e.g. Banana" /></div>
-                        <div className="space-y-1 w-24"><Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Weight (g)</Label><Input type="number" value={foodFormQuantity || ''} onChange={e => setFoodFormQuantity(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" /></div>
+                        <div className="space-y-1 flex-1">
+                          <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Food Name</Label>
+                          <Input type="text" value={foodFormName} onChange={e => {
+                            const val = e.target.value;
+                            setFoodFormName(val);
+                            if (!isEditingFood && !selectedFoodItem) {
+                              const units = getFoodServingUnits(val);
+                              setAvailableServingUnits(units);
+                              if (!units.find(u => u.unit === foodFormServingUnit)) {
+                                setFoodFormServingUnit(units[0].unit);
+                              }
+                            }
+                          }} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" placeholder="e.g. Banana" />
+                        </div>
+                        <div className="space-y-1 w-20">
+                          <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Quantity</Label>
+                          <Input type="number" value={foodFormQuantity || ''} onChange={e => handleQuantityChange(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm h-8" />
+                        </div>
+                        <div className="space-y-1 w-32">
+                          <Label className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Unit</Label>
+                          <Select value={foodFormServingUnit} onValueChange={(val) => handleServingUnitChange(val)}>
+                            <SelectTrigger className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 h-8 text-xs lg:text-sm dark:text-zinc-200 text-gray-800">
+                              <SelectValue placeholder="Unit" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm">
+                              {availableServingUnits.map(u => (
+                                <SelectItem key={u.unit} value={u.unit}>{u.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <div className="dark:bg-[#151520] bg-gray-50 bg-gray-50/30 p-2.5 rounded-xl border dark:border-[#212130] border-gray-200/60">
-                        <span className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 block mb-1.5 uppercase font-bold tracking-wider">Macros per 100g</span>
-                        <div className="grid grid-cols-5 gap-2">
-                          {[{ l: 'Cal', v: foodFormCalories, s: setFoodFormCalories }, { l: 'Prot', v: foodFormProtein, s: setFoodFormProtein }, { l: 'Carb', v: foodFormCarbs, s: setFoodFormCarbs }, { l: 'Fib', v: foodFormFiber, s: setFoodFormFiber }, { l: 'Fat', v: foodFormFat, s: setFoodFormFat }].map(f => (
-                            <div key={f.l} className="space-y-0.5"><Label className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500">{f.l}</Label><Input type="number" value={f.v || ''} onChange={e => f.s(Number(e.target.value))} className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm px-1 h-7 text-center" /></div>
+                        <span className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500 block mb-1.5 uppercase font-bold tracking-wider">Macros for {foodFormQuantity} {foodFormServingUnit}</span>
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                          {[
+                            { l: 'Cal', v: foodFormCalories, field: 'calories' as const },
+                            { l: 'Prot', v: foodFormProtein, field: 'protein' as const },
+                            { l: 'Carb', v: foodFormCarbs, field: 'carbs' as const },
+                            { l: 'Fib', v: foodFormFiber, field: 'fiber' as const },
+                            { l: 'Fat', v: foodFormFat, field: 'fat' as const }
+                          ].map(f => (
+                            <div key={f.l} className="space-y-0.5">
+                              <Label className="text-[10px] lg:text-xs dark:text-zinc-500 text-gray-500">{f.l}</Label>
+                              <Input 
+                                type="number" 
+                                value={f.v || ''} 
+                                onChange={e => updateMacroValue(f.field, Number(e.target.value))} 
+                                className="dark:bg-[#181822] bg-white dark:border-[#242436] border-gray-300 dark:text-zinc-200 text-gray-800 text-xs lg:text-sm px-1 h-7 text-center" 
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -1756,10 +2088,14 @@ export default function TrackFitApp() {
                     })}
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setWorkoutDialogOpen(true)}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold h-11 rounded-xl flex items-center justify-center cursor-pointer"
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />Log Exercise Set
+                </button>
                 <Dialog open={workoutDialogOpen} onOpenChange={open => { setWorkoutDialogOpen(open); if (!open) { setSelectedExercise(''); setExerciseSearchQuery(''); } }}>
-                  <DialogTrigger className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold h-11 rounded-xl flex items-center justify-center cursor-pointer">
-                    <Plus className="h-4 w-4 mr-1.5" />Log Exercise Set
-                  </DialogTrigger>
                   <DialogContent className="dark:bg-[#121219] bg-white dark:border-[#222233] border-gray-200 dark:text-zinc-100 text-gray-900 max-w-sm rounded-3xl p-5">
                     <DialogHeader><DialogTitle>Log Exercise Set</DialogTitle><DialogDescription className="text-xs lg:text-sm dark:text-zinc-500 text-gray-500">Search the exercise database.</DialogDescription></DialogHeader>
                     {!selectedExercise ? (
@@ -2635,8 +2971,31 @@ export default function TrackFitApp() {
         </main>
       </div>
 
+
+      {/* Mobile Floating Action Buttons */}
+      {activeTab === 'food' && (
+        <button
+          onClick={() => setFoodDialogOpen(true)}
+          className="fixed bottom-20 right-5 z-40 lg:hidden h-14 w-14 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-[0_4px_20px_rgba(99,102,241,0.4)] text-white flex items-center justify-center border border-indigo-400/20 active:scale-95 transition-all duration-200 btn-press"
+          id="mobile-food-fab"
+          aria-label="Log food"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
+      {activeTab === 'workout' && (
+        <button
+          onClick={() => setWorkoutDialogOpen(true)}
+          className="fixed bottom-20 right-5 z-40 lg:hidden h-14 w-14 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-[0_4px_20px_rgba(99,102,241,0.4)] text-white flex items-center justify-center border border-indigo-400/20 active:scale-95 transition-all duration-200 btn-press"
+          id="mobile-workout-fab"
+          aria-label="Log exercise set"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      )}
+
       {/* Mobile Bottom Nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 w-full dark:bg-[#0d0d12]/95 bg-white/95 border-t border-[#1b1b26]/80 backdrop-blur-md flex items-center justify-around py-3 px-2 z-50">
+      <nav className="lg:hidden fixed bottom-0 left-0 w-full dark:bg-[#0d0d12]/95 bg-white/95 border-t border-[#1b1b26]/80 backdrop-blur-md flex items-center justify-around py-3 px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-50">
         {([
           { tab: 'dashboard' as TabId, icon: Activity, label: 'Overview' },
           { tab: 'food' as TabId, icon: Utensils, label: 'Meals' },

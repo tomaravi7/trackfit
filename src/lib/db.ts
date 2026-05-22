@@ -131,6 +131,11 @@ async function initializeSchema(pool: Pool) {
       CREATE INDEX IF NOT EXISTS idx_food_logs_date ON food_logs(date)
     `);
 
+    // Alter food_logs to add serving_unit if it doesn't exist
+    await client.query(`
+      ALTER TABLE food_logs ADD COLUMN IF NOT EXISTS serving_unit VARCHAR(50) DEFAULT 'g'
+    `);
+
     // Create weight_logs table
     await client.query(`
       CREATE TABLE IF NOT EXISTS weight_logs (
